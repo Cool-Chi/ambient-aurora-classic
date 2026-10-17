@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#000000" />
+  <title>Ambient Aurora - WebGL</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="no-transitions">
+<div id="app-container">
+  <svg width="0" height="0" style="position:absolute;pointer-events:none" aria-hidden="true">
+    <defs>
+      <filter id="hollow-fx" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="1.4" id="hollow-blur" result="b"/>
+        <feComponentTransfer in="b" result="outer"><feFuncA type="linear" slope="9" intercept="-1.35"/></feComponentTransfer>
+        <feComponentTransfer in="b" result="inner"><feFuncA type="linear" slope="9" intercept="-6.3"/></feComponentTransfer>
+        <feComposite in="outer" in2="inner" operator="out" result="ring"/>
+        <feFlood id="hollow-flood" flood-color="#ffffff" flood-opacity="1" result="col"/>
+        <feComposite in="col" in2="ring" operator="in"/>
+      </filter>
+      <filter id="glass-fx" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" id="glass-bevel-blur" result="bBlur"/>
+        <feComposite in="SourceAlpha" in2="bBlur" operator="out" result="bevelMask"/>
+        <feOffset in="bBlur" dx="2" dy="0" id="glass-mw-off" result="mwOff"/>
+        <feComposite in="SourceAlpha" in2="mwOff" operator="out" result="mW"/>
+        <feOffset in="bBlur" dx="-2" dy="0" id="glass-me-off" result="meOff"/>
+        <feComposite in="SourceAlpha" in2="meOff" operator="out" result="mE"/>
+        <feOffset in="bBlur" dx="0" dy="2" id="glass-mn-off" result="mnOff"/>
+        <feComposite in="SourceAlpha" in2="mnOff" operator="out" result="mN"/>
+        <feOffset in="bBlur" dx="0" dy="-2" id="glass-ms-off" result="msOff"/>
+        <feComposite in="SourceAlpha" in2="msOff" operator="out" result="mS"/>
+        <feComposite in="mW" in2="mE" operator="arithmetic" k1="0" k2="0" k3="0.65" k4="0" id="glass-caustic-x" result="caustX"/>
+        <feComposite in="mN" in2="mS" operator="arithmetic" k1="0" k2="0" k3="0.75" k4="0" id="glass-caustic-y" result="caustY"/>
+        <feComposite in="caustX" in2="caustY" operator="arithmetic" k1="-0.28" k2="1" k3="1" k4="0" result="causticMask"/>
+        <feGaussianBlur in="SourceAlpha" stdDeviation="0.35" id="glass-crest-blur" result="cBase"/>
+        <feOffset in="cBase" dx="1" dy="0" id="glass-cw-off" result="cwOff"/>
+        <feComposite in="SourceAlpha" in2="cwOff" operator="out" result="cW"/>
+        <feOffset in="cBase" dx="-1" dy="0" id="glass-ce-off" result="ceOff"/>
+        <feComposite in="SourceAlpha" in2="ceOff" operator="out" result="cE"/>
+        <feOffset in="cBase" dx="0" dy="1" id="glass-cn-off" result="cnOff"/>
+        <feComposite in="SourceAlpha" in2="cnOff" operator="out" result="cN"/>
+        <feOffset in="cBase" dx="0" dy="-1" id="glass-cs-off" result="csOff"/>
+        <feComposite in="SourceAlpha" in2="csOff" operator="out" result="cS"/>
+        <feComposite in="cW" in2="cE" operator="arithmetic" k1="0" k2="0.65" k3="0" k4="0" id="glass-crest-x" result="crestX"/>
+        <feComposite in="cN" in2="cS" operator="arithmetic" k1="0" k2="0.75" k3="0" k4="0" id="glass-crest-y" result="crestY"/>
+        <feComposite in="crestX" in2="crestY" operator="arithmetic" k1="-0.32" k2="1" k3="1" k4="0" result="crestRaw"/>
+        <feComponentTransfer in="crestRaw" result="crestMask"><feFuncA type="linear" slope="1.85" intercept="-0.08"/></feComponentTransfer>
+        <feComposite in="cW" in2="cE" operator="arithmetic" k1="0" k2="0" k3="0.4" k4="0" id="glass-whisper-x" result="whispX"/>
+        <feComposite in="cN" in2="cS" operator="arithmetic" k1="0" k2="0" k3="0.46" k4="0" id="glass-whisper-y" result="whispY"/>
+        <feComposite in="whispX" in2="whispY" operator="arithmetic" k1="-0.25" k2="1" k3="1" k4="0" result="whisperMask"/>
+        <feComposite in="cW" in2="cE" operator="arithmetic" k1="0" k2="0.85" k3="0" k4="0" id="glass-prism-c-x" result="pcX"/>
+        <feComposite in="cN" in2="cS" operator="arithmetic" k1="0" k2="0" k3="0.52" k4="0" id="glass-prism-c-y" result="pcY"/>
+        <feComposite in="pcX" in2="pcY" operator="arithmetic" k1="2.2" k2="0" k3="0" k4="0" result="pcApex"/>
+        <feComposite in="pcApex" in2="crestRaw" operator="in" result="pcIn"/>
+        <feFlood id="glass-prism-c-flood" flood-color="#38e8ff" flood-opacity="0.38" result="pcCol"/>
+        <feComposite in="pcCol" in2="pcIn" operator="in" result="prismCool"/>
+        <feComposite in="cW" in2="cE" operator="arithmetic" k1="0" k2="0" k3="0.52" k4="0" id="glass-prism-w-x" result="pwX"/>
+        <feComposite in="cN" in2="cS" operator="arithmetic" k1="0" k2="0.85" k3="0" k4="0" id="glass-prism-w-y" result="pwY"/>
+        <feComposite in="pwX" in2="pwY" operator="arithmetic" k1="2.2" k2="0" k3="0" k4="0" result="pwApex"/>
+        <feComposite in="pwApex" in2="crestRaw" operator="in" result="pwIn"/>
+        <feFlood id="glass-prism-w-flood" flood-color="#ff6ee0" flood-opacity="0.34" result="pwCol"/>
+        <feComposite in="pwCol" in2="pwIn" operator="in" result="prismWarm"/>
+        <feFlood id="glass-body-flood" flood-color="#ffffff" flood-opacity="0.04" result="bodyCol"/>
+        <feComposite in="bodyCol" in2="SourceAlpha" operator="in" result="glassBody"/>
+        <feFlood id="glass-bevel-flood" flood-color="#ffffff" flood-opacity="0.18" result="bevelCol"/>
+        <feComposite in="bevelCol" in2="bevelMask" operator="in" result="glassBevel"/>
+        <feFlood id="glass-caustic-flood" flood-color="#ffffff" flood-opacity="0.36" result="causticCol"/>
+        <feComposite in="causticCol" in2="causticMask" operator="in" result="glassCaustic"/>
+        <feFlood id="glass-whisper-flood" flood-color="#ffffff" flood-opacity="0.28" result="whisperCol"/>
+        <feComposite in="whisperCol" in2="whisperMask" operator="in" result="glassWhisper"/>
+        <feFlood id="glass-crest-flood" flood-color="#ffffff" flood-opacity="0.95" result="crestCol"/>
+        <feComposite in="crestCol" in2="crestMask" operator="in" result="glassCrest"/>
+        <feMerge>
+          <feMergeNode in="glassBody"/>
+          <feMergeNode in="glassBevel"/>
+          <feMergeNode in="glassCaustic"/>
+          <feMergeNode in="glassWhisper"/>
+          <feMergeNode in="prismCool"/>
+          <feMergeNode in="prismWarm"/>
+          <feMergeNode in="glassCrest"/>
+        </feMerge>
+      </filter>
+    </defs>
+  </svg>
+  <div class="background-layer" id="bg-layer"><canvas id="gl-canvas" class="gl-canvas"></canvas></div>
+  <div class="clock-layer" id="clock-layer">
+    <div id="clock-wrapper">
+    <div id="clock">
+      <div class="hours-row">
+        <div class="tens-group clock-module" style="--hide-tx: 20px;"></div>
+        <div class="units-group clock-module"></div>
+      </div>
+      <div class="colon-group colon-hm clock-module">:</div>
+      <div class="minutes-group clock-module"></div>
+      <div class="colon-group colon-ms clock-module">:</div>
+      <div class="seconds-group clock-module" style="--hide-tx: -20px;"></div>
+      <div class="ampm-group clock-module" style="--hide-tx: -20px; --hide-ml: 0;"></div>
+    </div>
+    <div id="date" class="date-display"></div>
+    <div id="custom-text" class="date-display"></div>
+    </div>
+  </div>
+  <div class="ui-layer">
+    <div class="exit-hint"></div>
+    <div id="hud-toast" class="hud-toast"></div>
+    <div class="settings-panel" id="settings-panel">
+    </div>
+    <button class="icon-btn btn-lowpower" id="btn-lowpower" aria-label="Low Power Mode"></button>
+    <button class="icon-btn btn-settings" id="btn-settings" aria-label="Settings"></button>
+    <button class="icon-btn btn-fullscreen" id="btn-fullscreen" aria-label="Toggle Fullscreen"></button>
+  </div>
+</div>
+  <script src="js/store.js"></script>
+  <script src="js/webgl-engine.js"></script>
+  <script src="js/clock-controller.js"></script>
+  <script src="js/ui-manager.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
