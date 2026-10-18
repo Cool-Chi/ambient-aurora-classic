@@ -247,7 +247,7 @@ class UIManager {
       const [gr, gg, gb] = nightMode ? [217, 119, 54] : [Math.round(r * 0.45 + ar * 0.55), Math.round(g * 0.45 + ag * 0.55), Math.round(b * 0.45 + ab * 0.55)];
       const [sr, sg, sb] = nightMode ? [242, 168, 110] : [gr, gg, gb].map(c => Math.round(c + (255 - c) * 0.65));
       const [cr, cg, cb] = nightMode ? [255, 210, 165] : [r, g, b].map(c => Math.round(c + (255 - c) * 0.92));
-      fill = `rgb(${r}, ${g}, ${b})`;
+      fill = `rgb(${gr}, ${gg}, ${gb})`;
       stroke = '0';
       digitFilter = 'none';
       filter = `url(#glass-fx) drop-shadow(0 5px 10px rgba(0, 0, 0, ${(0.24 * op).toFixed(2)}))`;
@@ -437,7 +437,7 @@ class UIManager {
       if (targetEl) {
         const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, ease = EASE_OUT;
         const outAnim = this.typoAnim = targetEl.animate(
-          calm ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1, filter: 'blur(0px)', transform: 'scale(1)' }, { opacity: 0, filter: 'blur(10px)', transform: 'scale(0.96)' }],
+          calm ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.96)' }],
           { duration: 120, easing: ease, fill: 'forwards' }
         );
         outAnim.onfinish = () => {
@@ -445,7 +445,7 @@ class UIManager {
           this.applyVisualVars(false);
           window.dispatchEvent(new Event('resize'));
           const inAnim = this.typoAnim = targetEl.animate(
-            calm ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, filter: 'blur(10px)', transform: 'scale(1.03)' }, { opacity: 1, filter: 'blur(0px)', transform: 'scale(1)' }],
+            calm ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'scale(1.03)' }, { opacity: 1, transform: 'scale(1)' }],
             { duration: 240, easing: ease }
           );
           outAnim.cancel();
@@ -677,7 +677,7 @@ class UIManager {
     on(document, 'fullscreenchange', () => window.dispatchEvent(new Event('resize')));
     ['mousemove', 'pointermove', 'touchstart', 'keydown'].forEach(evt => on(window, evt, () => this.wakeUp(), { passive: true }));
     on(document, 'keydown', e => { if (e.target.tagName !== 'INPUT' && (e.code === 'Space' || e.key === ' ')) { e.preventDefault(); if (!e.repeat) { this.touchStartX = null; this.exitApp(true); } } });
-    on(document, 'keyup', e => { if (e.code === 'Space' || e.key === ' ') this.exitApp(false); }); on(window, 'blur', () => this.exitApp(false));
+    on(document, 'keyup', e => { if (e.code === 'Space' || e.key === ' ') this.exitApp(false); });  on(window, 'blur', () => this.exitApp(false));
   }
 }
 AA.UIManager = UIManager;
