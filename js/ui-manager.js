@@ -118,6 +118,7 @@ class UIManager {
     this.glassRaf = null;
     this.lastGlassTick = 0;
     this.glassEls = null;
+    this._kCache = {};
     this.tickGlassBound = this.tickGlass.bind(this);
     this.store.subscribe((prop, val) => {
       if (Store.TRANSIENT_KEYS.has(prop)) return;
@@ -333,23 +334,27 @@ class UIManager {
     const kx = ux.toFixed(3), ky = uy.toFixed(3), kp = p.toFixed(3);
     if (!force && this._lastKx === kx && this._lastKy === ky && this._lastKp === kp) return;
     this._lastKx = kx; this._lastKy = ky; this._lastKp = kp;
-    const setK = (el, k2, k3) => {
-      el.setAttribute('k2', Math.max(0, k2).toFixed(3));
-      el.setAttribute('k3', Math.max(0, k3).toFixed(3));
+    const kc = this._kCache;
+    const setK = (name, el, k2, k3) => {
+      const a = Math.max(0, k2).toFixed(3), b = Math.max(0, k3).toFixed(3), s = a + '|' + b;
+      if (!force && kc[name] === s) return;
+      kc[name] = s;
+      el.setAttribute('k2', a);
+      el.setAttribute('k3', b);
     };
-    setK(g.crestX, ux + 0.08, -ux + 0.08);
-    setK(g.crestY, uy + 0.08, -uy + 0.08);
-    setK(g.whisperX, -ux * 0.62, ux * 0.62);
-    setK(g.whisperY, -uy * 0.62, uy * 0.62);
+    setK('crestX', g.crestX, ux + 0.08, -ux + 0.08);
+    setK('crestY', g.crestY, uy + 0.08, -uy + 0.08);
+    setK('whisperX', g.whisperX, -ux * 0.62, ux * 0.62);
+    setK('whisperY', g.whisperY, -uy * 0.62, uy * 0.62);
     const cStr = 0.95 * (1 - p * 0.18);
-    setK(g.causticX, -ux * cStr, ux * cStr);
-    setK(g.causticY, -uy * cStr, uy * cStr);
+    setK('causticX', g.causticX, -ux * cStr, ux * cStr);
+    setK('causticY', g.causticY, -uy * cStr, uy * cStr);
     const cx = nx * 0.82 - ny * 0.57, cy = ny * 0.82 + nx * 0.57;
     const wx = nx * 0.82 + ny * 0.57, wy = ny * 0.82 - nx * 0.57;
-    setK(g.prismCX, cx * strength, -cx * strength);
-    setK(g.prismCY, -cy * strength, cy * strength);
-    setK(g.prismWX, -wx * strength, wx * strength);
-    setK(g.prismWY, wy * strength, -wy * strength);
+    setK('prismCX', g.prismCX, cx * strength, -cx * strength);
+    setK('prismCY', g.prismCY, -cy * strength, cy * strength);
+    setK('prismWX', g.prismWX, -wx * strength, wx * strength);
+    setK('prismWY', g.prismWY, wy * strength, -wy * strength);
     if (force || Math.abs((this._lastOpP ?? -1) - p) > 0.002) {
       this._lastOpP = p;
       const reduceTrans = window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
@@ -382,7 +387,7 @@ class UIManager {
       if (this.glassPress !== pTarget) this.glassRaf = requestAnimationFrame(this.tickGlassBound);
       return;
     }
-    const t = now * 0.0005 * clamp(speed, 0.2, 2.5);
+    const t = now * 0.0002 * clamp(speed, 0.2, 2.5);
     const driftX = Math.cos(t) * 0.64 + Math.sin(t * 0.43) * 0.22 + 0.16;
     const driftY = Math.sin(t * 0.71) * 0.64 + Math.cos(t * 0.37) * 0.22 + 0.18;
     const ambX = this.hasGyro ? clamp(driftX * 0.35 + (-this.gyroX) * 0.85, -1.15, 1.15) : driftX;
@@ -403,7 +408,7 @@ class UIManager {
     this.lAngle = Math.atan2(Math.sin(this.lAngle + clamp(dAngle * kL, -maxStep, maxStep)), Math.cos(this.lAngle + clamp(dAngle * kL, -maxStep, maxStep)));
     this.lMag += (tMag - this.lMag) * kL;
     const active = w > 0.01 || isHolding || this.glassPress > 0.002;
-    const minStep = active ? 14 : (isIdle ? 80 : lowPower ? 55 : 32);
+    const minStep = active ? 14 : (isIdle ? 200 : lowPower ? 250 : 100);
     if (now - (this._lastGlassDom || 0) >= minStep) {
       this._lastGlassDom = now;
       this.updateGlassVectors(false);
