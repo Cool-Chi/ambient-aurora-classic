@@ -223,7 +223,7 @@ class UIManager {
     sp('--clock-shadow-color', nightMode ? 'transparent' : `rgba(255, 255, 255, ${0.2 * op})`);
     const [r, g, b] = nightMode ? [217, 119, 54] : UIManager.hexToRgb(textColor).map(x => Math.round(x * 255));
     const cColor = `rgba(${r}, ${g}, ${b}, ${op})`;
-    let fill = cColor, stroke = '0', blend = 'normal', digitFilter = 'none', moduleFilter = 'none', filter = 'drop-shadow(0 8px 16px rgba(0,0,0,.5)) drop-shadow(0 0 4px var(--clock-shadow-color))';
+    let fill = cColor, stroke = '0', blend = 'normal', digitFilter = 'none', filter = 'drop-shadow(0 8px 16px rgba(0,0,0,.5)) drop-shadow(0 0 4px var(--clock-shadow-color))';
     if (material === 1) {
       fill = `rgb(${r}, ${g}, ${b})`;
       stroke = '0';
@@ -249,8 +249,7 @@ class UIManager {
       fill = `rgb(${gr}, ${gg}, ${gb})`;
       stroke = '0';
       digitFilter = 'none';
-      moduleFilter = 'url(#glass-fx)';
-      filter = `drop-shadow(0 6px 14px rgba(0, 0, 0, ${(0.24 * op).toFixed(2)})) drop-shadow(0 0 10px rgba(${ar}, ${ag}, ${ab}, ${(0.2 * op).toFixed(2)}))`;
+      filter = `url(#glass-fx) drop-shadow(0 5px 10px rgba(0, 0, 0, ${(0.24 * op).toFixed(2)}))`;
       const ge = this.glassEls;
       if (ge && ge.bodyFlood) {
         const setFlood = (el, col, a) => { el.setAttribute('flood-color', col); el.setAttribute('flood-opacity', (a * op).toFixed(3)); };
@@ -264,12 +263,12 @@ class UIManager {
         setFlood(ge.prismWFlood, '#ff6ee0', nightMode ? 0 : 0.34);
         if (this._glassStaticSize !== size) {
           this._glassStaticSize = size;
-          ge.bevelBlur.setAttribute('stdDeviation', Math.min(2.4, Math.max(1.3, size * 0.14)).toFixed(2));
+          ge.bevelBlur.setAttribute('stdDeviation', Math.min(2.0, Math.max(1.3, size * 0.14)).toFixed(2));
           ge.crestBlur.setAttribute('stdDeviation', Math.min(0.4, Math.max(0.32, size * 0.024)).toFixed(2));
-          const mDist = String(Math.max(1, Math.round(size * 0.12)));
+          const mDist = String(Math.min(3, Math.max(1, Math.round(size * 0.12))));
           ge.mwOff.setAttribute('dx', mDist); ge.meOff.setAttribute('dx', '-' + mDist);
           ge.mnOff.setAttribute('dy', mDist); ge.msOff.setAttribute('dy', '-' + mDist);
-          const cDist = String(Math.max(1, Math.round(size * 0.068)));
+          const cDist = String(Math.min(2, Math.max(1, Math.round(size * 0.045))));
           ge.cwOff.setAttribute('dx', cDist); ge.ceOff.setAttribute('dx', '-' + cDist);
           ge.cnOff.setAttribute('dy', cDist); ge.csOff.setAttribute('dy', '-' + cDist);
         }
@@ -286,7 +285,6 @@ class UIManager {
     sp('--clock-stroke', stroke);
     sp('--clock-blend', blend);
     sp('--digit-filter', digitFilter);
-    sp('--module-filter', moduleFilter);
     sp('--clock-filter', filter);
     const clk = this.clockEl;
     if (!full && clk) {
@@ -333,7 +331,8 @@ class UIManager {
     const nx = Math.cos(this.lAngle), ny = Math.sin(this.lAngle);
     const strength = clamp(this.lMag, 0.55, 1.15) * comp;
     const ux = nx * strength, uy = ny * strength;
-    const kx = ux.toFixed(2), ky = uy.toFixed(2), kp = p.toFixed(2);
+    const q = v => (Math.round(v * 50) / 50).toFixed(2);
+    const kx = q(ux), ky = q(uy), kp = p.toFixed(2);
     if (!force && this._lastKx === kx && this._lastKy === ky && this._lastKp === kp) return;
     this._lastKx = kx; this._lastKy = ky; this._lastKp = kp;
     const kc = this._kCache;
@@ -377,10 +376,10 @@ class UIManager {
     const { material, isHolding, isIdle, speed, lowPower } = this.store.getState();
     if (material !== 3 || document.hidden) return;
     const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const dt = clamp(now - this.lastGlassTick, 1, 64);
+    const fdt = clamp(now - this.lastGlassTick, 1, 64);
     this.lastGlassTick = now;
     const pTarget = isHolding ? 1 : 0;
-    const kP = 1 - Math.pow(1 - (isHolding ? 0.08 : 0.26), dt / 16.666);
+    const kP = 1 - Math.pow(1 - (isHolding ? 0.08 : 0.26), fdt / 16.666);
     this.glassPress += (pTarget - this.glassPress) * kP;
     if (Math.abs(pTarget - this.glassPress) < 0.001) this.glassPress = pTarget;
     if (calm) {
@@ -389,13 +388,22 @@ class UIManager {
       if (this.glassPress !== pTarget) this.glassRaf = requestAnimationFrame(this.tickGlassBound);
       return;
     }
-    const t = now * 0.00025 * clamp(speed, 0.2, 2.5);
+    const ptrActive = now < this.ptrActiveUntil ? 1 : 0;
+    const active = ptrActive === 1 || this.ptrW > 0.01 || isHolding || this.glassPress > 0.002;
+    const minStep = active ? 36 : (isIdle ? 240 : lowPower ? 240 : 110);
+    const flipping = this.clockLayerObj && this.clockLayerObj.classList.contains('is-flipping');
+    if (flipping || now - (this._lastGlassDom || 0) < minStep) {
+      this.glassRaf = requestAnimationFrame(this.tickGlassBound);
+      return;
+    }
+    const dt = clamp((now - (this._lastGlassDom || now - minStep)) * 0.001, 0.016, 0.3);
+    this._lastGlassDom = now;
+    const t = now * 0.00018 * clamp(speed, 0.2, 2.5);
     const driftX = Math.cos(t) * 0.64 + Math.sin(t * 0.43) * 0.22 + 0.16;
     const driftY = Math.sin(t * 0.71) * 0.64 + Math.cos(t * 0.37) * 0.22 + 0.18;
     const ambX = this.hasGyro ? clamp(driftX * 0.35 + (-this.gyroX) * 0.85, -1.15, 1.15) : driftX;
     const ambY = this.hasGyro ? clamp(driftY * 0.35 + (-this.gyroY) * 0.85, -1.15, 1.15) : driftY;
-    const ptrActive = now < this.ptrActiveUntil ? 1 : 0;
-    const kW = 1 - Math.pow(1 - (ptrActive ? 0.18 : 0.045), dt / 16.666);
+    const kW = 1 - Math.exp(-dt * (ptrActive ? 12 : 2.8));
     this.ptrW += (ptrActive - this.ptrW) * kW;
     if (this.ptrW < 0.001 && !ptrActive) this.ptrW = 0;
     const w = this.ptrW;
@@ -405,17 +413,12 @@ class UIManager {
     const tAngle = rawMag > 0.02 ? Math.atan2(ty, tx) : this.lAngle;
     const tMag = clamp(rawMag, 0.62, 1.15);
     const dAngle = Math.atan2(Math.sin(tAngle - this.lAngle), Math.cos(tAngle - this.lAngle));
-    const kL = 1 - Math.pow(1 - (w > 0.05 ? 0.20 : 0.07), dt / 16.666);
-    const maxStep = (w > 0.05 ? 0.10 : 0.045) * (dt / 16.666);
-    this.lAngle = Math.atan2(Math.sin(this.lAngle + clamp(dAngle * kL, -maxStep, maxStep)), Math.cos(this.lAngle + clamp(dAngle * kL, -maxStep, maxStep)));
+    const kL = 1 - Math.exp(-dt * (active ? 10 : 3.2));
+    const maxStep = (active ? 8.5 : 2.2) * dt;
+    const stepA = clamp(dAngle * kL, -maxStep, maxStep);
+    this.lAngle = Math.atan2(Math.sin(this.lAngle + stepA), Math.cos(this.lAngle + stepA));
     this.lMag += (tMag - this.lMag) * kL;
-    const active = w > 0.01 || isHolding || this.glassPress > 0.002;
-    const minStep = active ? 32 : (isIdle ? 120 : lowPower ? 120 : 40);
-    const flipping = this.clockLayerObj && this.clockLayerObj.classList.contains('is-flipping');
-    if (!flipping && now - (this._lastGlassDom || 0) >= minStep) {
-      this._lastGlassDom = now;
-      this.updateGlassVectors(false);
-    }
+    this.updateGlassVectors(false);
     this.glassRaf = requestAnimationFrame(this.tickGlassBound);
   }
   syncUI(skipAnim = false, changedKey = null) {
