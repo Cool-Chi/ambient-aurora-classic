@@ -213,6 +213,7 @@ class UIManager {
   }
   applyVisualVars(full = false) {
     const { fontStyle, nightMode, textColor, ampmColor, dateColor, customTextColor, material, clockOpacity: op, size, colorTarget } = this.store.getState();
+    const matChanged = this._lastMat !== undefined && this._lastMat !== material;
     const root = document.documentElement, sp = (k, v) => root.style.setProperty(k, v);
     const rgba = (hex, a) => `rgba(${UIManager.hexToRgb(hex).map(x => Math.round(x * 255)).join(', ')}, ${a})`;
     const nightCol = `rgba(110, 63, 32, ${op})`;
@@ -289,7 +290,8 @@ class UIManager {
     sp('--digit-filter', digitFilter);
     sp('--clock-filter', filter);
     const clk = this.clockEl;
-    if (!full && clk) {
+    if ((!full || matChanged) && clk) {
+      if (matChanged) void clk.offsetWidth;
       clk.style.opacity = 0.99;
       clearTimeout(this.rp);
       this.rp = setTimeout(() => clk.style.opacity = '', 50);
@@ -436,7 +438,7 @@ class UIManager {
         const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, ease = EASE_OUT;
         const outAnim = this.typoAnim = targetEl.animate(
           calm ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1, filter: 'blur(0px)', transform: 'scale(1)' }, { opacity: 0, filter: 'blur(10px)', transform: 'scale(0.96)' }],
-          { duration: 120, easing: ease }
+          { duration: 120, easing: ease, fill: 'forwards' }
         );
         outAnim.onfinish = () => {
           if (this.typoAnim !== outAnim) return;
@@ -446,6 +448,7 @@ class UIManager {
             calm ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, filter: 'blur(10px)', transform: 'scale(1.03)' }, { opacity: 1, filter: 'blur(0px)', transform: 'scale(1)' }],
             { duration: 240, easing: ease }
           );
+          outAnim.cancel();
           inAnim.onfinish = inAnim.oncancel = () => { if (this.typoAnim === inAnim) this.typoAnim = null; };
         };
       } else this.applyVisualVars(false);
