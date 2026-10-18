@@ -21,27 +21,27 @@
       </filter>
       <filter id="glass-fx" x="-4%" y="-8%" width="108%" height="116%" color-interpolation-filters="sRGB">
         <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" id="glass-bevel-blur" result="bBlur"/>
-        <feComposite in="SourceAlpha" in2="bBlur" operator="out" result="bevelMask"/>
+        <feComposite in="SourceAlpha" in2="bBlur" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="bevelMask"/>
         <feOffset in="bBlur" dx="2" dy="0" id="glass-mw-off" result="mwOff"/>
-        <feComposite in="SourceAlpha" in2="mwOff" operator="out" result="mW"/>
+        <feComposite in="SourceAlpha" in2="mwOff" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="mW"/>
         <feOffset in="bBlur" dx="-2" dy="0" id="glass-me-off" result="meOff"/>
-        <feComposite in="SourceAlpha" in2="meOff" operator="out" result="mE"/>
+        <feComposite in="SourceAlpha" in2="meOff" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="mE"/>
         <feOffset in="bBlur" dx="0" dy="2" id="glass-mn-off" result="mnOff"/>
-        <feComposite in="SourceAlpha" in2="mnOff" operator="out" result="mN"/>
+        <feComposite in="SourceAlpha" in2="mnOff" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="mN"/>
         <feOffset in="bBlur" dx="0" dy="-2" id="glass-ms-off" result="msOff"/>
-        <feComposite in="SourceAlpha" in2="msOff" operator="out" result="mS"/>
+        <feComposite in="SourceAlpha" in2="msOff" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="mS"/>
         <feComposite in="mW" in2="mE" operator="arithmetic" k1="0" k2="0" k3="0.65" k4="0" id="glass-caustic-x" result="caustX"/>
         <feComposite in="mN" in2="mS" operator="arithmetic" k1="0" k2="0" k3="0.75" k4="0" id="glass-caustic-y" result="caustY"/>
         <feComposite in="caustX" in2="caustY" operator="arithmetic" k1="-0.28" k2="1" k3="1" k4="0" result="causticMask"/>
         <feGaussianBlur in="SourceAlpha" stdDeviation="0.35" id="glass-crest-blur" result="cBase"/>
         <feOffset in="cBase" dx="1" dy="0" id="glass-cw-off" result="cwOff"/>
-        <feComposite in="SourceAlpha" in2="cwOff" operator="out" result="cW"/>
+        <feComposite in="SourceAlpha" in2="cwOff" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="cW"/>
         <feOffset in="cBase" dx="-1" dy="0" id="glass-ce-off" result="ceOff"/>
-        <feComposite in="SourceAlpha" in2="ceOff" operator="out" result="cE"/>
+        <feComposite in="SourceAlpha" in2="ceOff" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="cE"/>
         <feOffset in="cBase" dx="0" dy="1" id="glass-cn-off" result="cnOff"/>
-        <feComposite in="SourceAlpha" in2="cnOff" operator="out" result="cN"/>
+        <feComposite in="SourceAlpha" in2="cnOff" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="cN"/>
         <feOffset in="cBase" dx="0" dy="-1" id="glass-cs-off" result="csOff"/>
-        <feComposite in="SourceAlpha" in2="csOff" operator="out" result="cS"/>
+        <feComposite in="SourceAlpha" in2="csOff" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="cS"/>
         <feComposite in="cW" in2="cE" operator="arithmetic" k1="0" k2="0.65" k3="0" k4="0" id="glass-crest-x" result="crestX"/>
         <feComposite in="cN" in2="cS" operator="arithmetic" k1="0" k2="0.75" k3="0" k4="0" id="glass-crest-y" result="crestY"/>
         <feComposite in="crestX" in2="crestY" operator="arithmetic" k1="-0.32" k2="1" k3="1" k4="0" result="crestRaw"/>

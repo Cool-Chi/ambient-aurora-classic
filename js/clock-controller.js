@@ -133,7 +133,7 @@ class ClockController {
         container.innerHTML = newStr.split('').map(c => `<span><div class="digit-old">${c}</div><div class="digit-new">${c}</div></span>`).join('');
       } else {
         const { clockAnimMode, material } = this.store.getState();
-        const pfx = (container !== this.ampmCont && (material === 1 || material === 3)) ? (material === 1 ? 'url(#hollow-fx) ' : 'url(#glass-fx) ') : '';
+        const pfx = (container !== this.ampmCont && material === 1) ? 'url(#hollow-fx) ' : '';
         for (let i = 0; i < newStr.length; i++) {
           if (newStr[i] !== oldStr[i]) {
             const span = container.children[i], oldEl = qs(span, '.digit-old'), newEl = qs(span, '.digit-new');

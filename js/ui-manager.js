@@ -246,7 +246,7 @@ class UIManager {
       const [gr, gg, gb] = nightMode ? [217, 119, 54] : [Math.round(r * 0.45 + ar * 0.55), Math.round(g * 0.45 + ag * 0.55), Math.round(b * 0.45 + ab * 0.55)];
       const [sr, sg, sb] = nightMode ? [242, 168, 110] : [gr, gg, gb].map(c => Math.round(c + (255 - c) * 0.65));
       const [cr, cg, cb] = nightMode ? [255, 210, 165] : [r, g, b].map(c => Math.round(c + (255 - c) * 0.92));
-      fill = `rgb(${gr}, ${gg}, ${gb})`;
+      fill = `rgb(${r}, ${g}, ${b})`;
       stroke = '0';
       digitFilter = 'none';
       filter = `url(#glass-fx) drop-shadow(0 5px 10px rgba(0, 0, 0, ${(0.24 * op).toFixed(2)}))`;
@@ -273,9 +273,11 @@ class UIManager {
           ge.cnOff.setAttribute('dy', cDist); ge.csOff.setAttribute('dy', '-' + cDist);
         }
       }
+      if (this._lastMat !== 3 || full) this._lastGlassDom = 0;
       this.updateGlassVectors(true);
       this.startGlassLoop();
     }
+    this._lastMat = material;
     if (material !== 3) {
       this.stopGlassLoop();
       sp('--glass-press', '1');
@@ -313,6 +315,8 @@ class UIManager {
   }
   startGlassLoop() {
     if (this.glassRaf || document.hidden || this.store.getState().material !== 3) return;
+    this._lastGlassDom = 0;
+    this.updateGlassVectors(true);
     this.lastGlassTick = performance.now();
     this.glassRaf = requestAnimationFrame(this.tickGlassBound);
   }
