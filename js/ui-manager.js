@@ -223,7 +223,7 @@ class UIManager {
     sp('--clock-shadow-color', nightMode ? 'transparent' : `rgba(255, 255, 255, ${0.2 * op})`);
     const [r, g, b] = nightMode ? [217, 119, 54] : UIManager.hexToRgb(textColor).map(x => Math.round(x * 255));
     const cColor = `rgba(${r}, ${g}, ${b}, ${op})`;
-    let fill = cColor, stroke = '0', blend = 'normal', digitFilter = 'none', filter = 'drop-shadow(0 8px 16px rgba(0,0,0,.5)) drop-shadow(0 0 4px var(--clock-shadow-color))';
+    let fill = cColor, stroke = '0', blend = 'normal', digitFilter = 'none', moduleFilter = 'none', filter = 'drop-shadow(0 8px 16px rgba(0,0,0,.5)) drop-shadow(0 0 4px var(--clock-shadow-color))';
     if (material === 1) {
       fill = `rgb(${r}, ${g}, ${b})`;
       stroke = '0';
@@ -248,7 +248,8 @@ class UIManager {
       const [cr, cg, cb] = nightMode ? [255, 210, 165] : [r, g, b].map(c => Math.round(c + (255 - c) * 0.92));
       fill = `rgb(${gr}, ${gg}, ${gb})`;
       stroke = '0';
-      digitFilter = 'url(#glass-fx)';
+      digitFilter = 'none';
+      moduleFilter = 'url(#glass-fx)';
       filter = `drop-shadow(0 6px 14px rgba(0, 0, 0, ${(0.24 * op).toFixed(2)})) drop-shadow(0 0 10px rgba(${ar}, ${ag}, ${ab}, ${(0.2 * op).toFixed(2)}))`;
       const ge = this.glassEls;
       if (ge && ge.bodyFlood) {
@@ -263,8 +264,8 @@ class UIManager {
         setFlood(ge.prismWFlood, '#ff6ee0', nightMode ? 0 : 0.34);
         if (this._glassStaticSize !== size) {
           this._glassStaticSize = size;
-          ge.bevelBlur.setAttribute('stdDeviation', Math.max(1.3, size * 0.14).toFixed(2));
-          ge.crestBlur.setAttribute('stdDeviation', Math.max(0.32, size * 0.024).toFixed(2));
+          ge.bevelBlur.setAttribute('stdDeviation', Math.min(2.4, Math.max(1.3, size * 0.14)).toFixed(2));
+          ge.crestBlur.setAttribute('stdDeviation', Math.min(0.4, Math.max(0.32, size * 0.024)).toFixed(2));
           const mDist = String(Math.max(1, Math.round(size * 0.12)));
           ge.mwOff.setAttribute('dx', mDist); ge.meOff.setAttribute('dx', '-' + mDist);
           ge.mnOff.setAttribute('dy', mDist); ge.msOff.setAttribute('dy', '-' + mDist);
@@ -285,6 +286,7 @@ class UIManager {
     sp('--clock-stroke', stroke);
     sp('--clock-blend', blend);
     sp('--digit-filter', digitFilter);
+    sp('--module-filter', moduleFilter);
     sp('--clock-filter', filter);
     const clk = this.clockEl;
     if (!full && clk) {
@@ -331,12 +333,12 @@ class UIManager {
     const nx = Math.cos(this.lAngle), ny = Math.sin(this.lAngle);
     const strength = clamp(this.lMag, 0.55, 1.15) * comp;
     const ux = nx * strength, uy = ny * strength;
-    const kx = ux.toFixed(3), ky = uy.toFixed(3), kp = p.toFixed(3);
+    const kx = ux.toFixed(2), ky = uy.toFixed(2), kp = p.toFixed(2);
     if (!force && this._lastKx === kx && this._lastKy === ky && this._lastKp === kp) return;
     this._lastKx = kx; this._lastKy = ky; this._lastKp = kp;
     const kc = this._kCache;
     const setK = (name, el, k2, k3) => {
-      const a = Math.max(0, k2).toFixed(3), b = Math.max(0, k3).toFixed(3), s = a + '|' + b;
+      const a = Math.max(0, k2).toFixed(2), b = Math.max(0, k3).toFixed(2), s = a + '|' + b;
       if (!force && kc[name] === s) return;
       kc[name] = s;
       el.setAttribute('k2', a);
@@ -387,7 +389,7 @@ class UIManager {
       if (this.glassPress !== pTarget) this.glassRaf = requestAnimationFrame(this.tickGlassBound);
       return;
     }
-    const t = now * 0.0002 * clamp(speed, 0.2, 2.5);
+    const t = now * 0.00025 * clamp(speed, 0.2, 2.5);
     const driftX = Math.cos(t) * 0.64 + Math.sin(t * 0.43) * 0.22 + 0.16;
     const driftY = Math.sin(t * 0.71) * 0.64 + Math.cos(t * 0.37) * 0.22 + 0.18;
     const ambX = this.hasGyro ? clamp(driftX * 0.35 + (-this.gyroX) * 0.85, -1.15, 1.15) : driftX;
@@ -408,8 +410,9 @@ class UIManager {
     this.lAngle = Math.atan2(Math.sin(this.lAngle + clamp(dAngle * kL, -maxStep, maxStep)), Math.cos(this.lAngle + clamp(dAngle * kL, -maxStep, maxStep)));
     this.lMag += (tMag - this.lMag) * kL;
     const active = w > 0.01 || isHolding || this.glassPress > 0.002;
-    const minStep = active ? 14 : (isIdle ? 200 : lowPower ? 250 : 100);
-    if (now - (this._lastGlassDom || 0) >= minStep) {
+    const minStep = active ? 32 : (isIdle ? 120 : lowPower ? 120 : 40);
+    const flipping = this.clockLayerObj && this.clockLayerObj.classList.contains('is-flipping');
+    if (!flipping && now - (this._lastGlassDom || 0) >= minStep) {
       this._lastGlassDom = now;
       this.updateGlassVectors(false);
     }
