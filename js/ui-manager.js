@@ -213,7 +213,6 @@ class UIManager {
   }
   applyVisualVars(full = false) {
     const { fontStyle, nightMode, textColor, ampmColor, dateColor, customTextColor, material, clockOpacity: op, size, colorTarget } = this.store.getState();
-    const matChanged = this._lastMat !== undefined && this._lastMat !== material;
     const root = document.documentElement, sp = (k, v) => root.style.setProperty(k, v);
     const rgba = (hex, a) => `rgba(${UIManager.hexToRgb(hex).map(x => Math.round(x * 255)).join(', ')}, ${a})`;
     const nightCol = `rgba(110, 63, 32, ${op})`;
@@ -290,8 +289,7 @@ class UIManager {
     sp('--digit-filter', digitFilter);
     sp('--clock-filter', filter);
     const clk = this.clockEl;
-    if ((!full || matChanged) && clk) {
-      if (matChanged) void clk.offsetWidth;
+    if (!full && clk) {
       clk.style.opacity = 0.99;
       clearTimeout(this.rp);
       this.rp = setTimeout(() => clk.style.opacity = '', 50);
@@ -677,7 +675,7 @@ class UIManager {
     on(document, 'fullscreenchange', () => window.dispatchEvent(new Event('resize')));
     ['mousemove', 'pointermove', 'touchstart', 'keydown'].forEach(evt => on(window, evt, () => this.wakeUp(), { passive: true }));
     on(document, 'keydown', e => { if (e.target.tagName !== 'INPUT' && (e.code === 'Space' || e.key === ' ')) { e.preventDefault(); if (!e.repeat) { this.touchStartX = null; this.exitApp(true); } } });
-    on(document, 'keyup', e => { if (e.code === 'Space' || e.key === ' ') this.exitApp(false); });  on(window, 'blur', () => this.exitApp(false));
+    on(document, 'keyup', e => { if (e.code === 'Space' || e.key === ' ') this.exitApp(false); }); on(window, 'blur', () => this.exitApp(false));
   }
 }
 AA.UIManager = UIManager;

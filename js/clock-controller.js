@@ -91,10 +91,15 @@ class ClockController {
     if (key === 'isPanelOpen') {
       this.updateEvasion();
     } else if (key === 'clockLayout') {
-      this.clockElement.animate([{ opacity: 1, filter: 'blur(0px)', transform: 'scale(1)' }, { opacity: 0, filter: 'blur(12px)', transform: 'scale(0.95)' }], { duration: 150, easing: EASE_OUT }).onfinish = () => {
-        this.clockElement.classList.toggle('is-vertical', val === 1);
+      const ce = this.clockElement;
+      if (this.layoutAnim) { this.layoutAnim.cancel(); this.layoutAnim = null; }
+      const out = this.layoutAnim = ce.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.95)' }], { duration: 150, easing: EASE_OUT });
+      out.onfinish = () => {
+        if (this.layoutAnim !== out) return;
+        ce.classList.toggle('is-vertical', val === 1);
         this.updateEvasion();
-        this.clockElement.animate([{ opacity: 0, filter: 'blur(12px)', transform: 'scale(1.05)' }, { opacity: 1, filter: 'blur(0px)', transform: 'scale(1)' }], { duration: 280, easing: EASE_OUT });
+        const inn = this.layoutAnim = ce.animate([{ opacity: 0, transform: 'scale(1.05)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 280, easing: EASE_OUT });
+        inn.onfinish = inn.oncancel = () => { if (this.layoutAnim === inn) this.layoutAnim = null; };
       };
     } else if (key === 'datePosition') {
       [this.dateElement, this.customTextElement].forEach((el, i) => el.animate([{ opacity: 1, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(8px)' }], { duration: 140, easing: EASE_OUT }).onfinish = () => {

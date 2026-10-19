@@ -1,5 +1,5 @@
 window.AA = window.AA || {};
-// Ambient Aurora v3.0.0 | Store / WebGLEngine / ClockController / UIManager
+// Ambient Aurora v3.0.7 | Store / WebGLEngine / ClockController / UIManager
 (function (AA) {
 const $ = id => document.getElementById(id);
 const qs = (el, sel) => el.querySelector(sel);
