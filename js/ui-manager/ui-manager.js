@@ -1,76 +1,27 @@
 (function (AA) {
 const { $, qs, on, clamp } = AA.util;
 const { EASE_OUT } = AA.CONST;
-const { Store } = AA;
+const { Store, DICT } = AA;
+const { FONTS, THEMES, SLIDERS, UI_BINDINGS, BINDING_BY_ID } = AA.UI_CONFIG;
 const qsa = (el, sel) => el.querySelectorAll(sel);
 const haptic = p => { try { navigator.vibrate?.(p) } catch(e){} };
 class UIManager {
   static get DICT() {
-    return {
-      en: {
-        lang: "Language", time: "24-Hour Time", sec: "Show Seconds", tick: "Tick Anim",
-        mode: "Mode", theme: "Theme", size: "Size", weight: "Weight", speed: "Speed",
-        lp: "Low Power Mode", idle: "Idle Timeout", burn: "Burn-in Protection", night: "Night Mode",
-        font: "Font", lz: "Leading Zero", date: "Show Date", lpOn: "Low Power Mode: On", lpOff: "Low Power Mode: Off",
-        modes: ['Silk', 'Glow', 'Dust', 'Liquid', 'Horizon'],
-        ticks: ['Inst', 'Depth', 'Spring', 'Flip'],
-        layout: "Layout", layouts: ['Horizontal', 'Vertical'],
-        tabs: ['Clock', 'Background', 'System'],
-        tc: "Color", tcItems: ['Clock', 'AM', 'Date', 'Text'], mat: "Material", mats: ['Classic', 'Hollow', 'Glow', 'Glass'], sct: "Custom Text", ctph: "Enter text...", anchor: "Position", offset: "Offset X / Y",
-        opacity: "Opacity", datePos: "Date Pos", datePositions: ['Below', 'Above'],
-        df: "Format", dY: "Y", dM: "M", dD: "D", dW: "W",
-        idles: ['3s', '10s', 'Never']
-      },
-      zh: {
-        lang: "語言", time: "24小時制", sec: "顯示秒數", tick: "跳秒動效",
-        mode: "背景模式", theme: "色彩主題", size: "時鐘尺寸", weight: "字體粗細", speed: "背景流速",
-        lp: "低功耗模式", idle: "閒置隱藏", burn: "OLED 防烙印", night: "夜間護眼",
-        font: "字體風格", lz: "補零顯示", date: "顯示日期", lpOn: "低功耗模式：已開啟", lpOff: "低功耗模式：已關閉",
-        modes: ['絲綢', '光暈', '星塵', '液態', '天沿'],
-        ticks: ['瞬間', '景深', '彈性', '翻牌'],
-        layout: "時鐘排佈", layouts: ['橫向', '直列'],
-        tabs: ['時鐘', '背景', '系統'],
-        tc: "字體色彩", tcItems: ['時鐘', 'AM', '日期', '文字'], mat: "字體材質", mats: ['實色', '鏤空', '高光', '玻璃'], sct: "自定義文字", ctph: "輸入文字...", anchor: "空間位置", offset: "X / Y 軸偏移",
-        opacity: "透明度", datePos: "日期位置", datePositions: ['下方', '上方'],
-        df: "格式", dY: "年", dM: "月", dD: "日", dW: "週",
-        idles: ['3秒', '10秒', '永不']
-      }
-    };
+    return DICT;
   }
   static get FONTS() {
-    return [
-      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "San Francisco", "Inter", system-ui, sans-serif',
-      '"ui-serif", "New York", "Times New Roman", Times, serif',
-      '"ui-monospace", "SF Mono", Menlo, Monaco, Consolas, monospace'
-    ];
+    return FONTS;
   }
   static get THEMES() {
-    return [
-      {rgb: '0.21,0.11,0.47', grad: '#371e78, #0a0a0a', label: 'Midnight Purple'}, {rgb: '0.06,0.36,0.27', grad: '#105c45, #0a0a0a', label: 'Aurora Green'},
-      {rgb: '0.05,0.23,0.42', grad: '#0e3b6d, #0a0a0a', label: 'Deep Ocean'}, {rgb: '0.47,0.14,0.11', grad: '#78261e, #0a0a0a', label: 'Sunset Orange'},
-      {rgb: '0.45,0.05,0.15', grad: '#a31636, #0a0a0a', label: 'Crimson Velvet'}, {rgb: '0.02,0.35,0.45', grad: '#0a82a8, #0a0a0a', label: 'Cyber Cyan'}
-    ];
+    return THEMES;
   }
   static get SLIDERS() {
-    return [
-      { id: 'ctrl-size', key: 'size', min: 5, max: 20, step: 1, svgMin: '<path d="M12 6L8 18M12 6L16 18M9.5 14H14.5" stroke-linecap="round" stroke-linejoin="round"/>', svgMax: '<path d="M12 3L5 21M12 3L19 21M8 15H16" stroke-linecap="round" stroke-linejoin="round"/>' },
-      { id: 'ctrl-weight', key: 'weight', min: 100, max: 900, step: 100, svgMin: '<circle cx="12" cy="12" r="8" stroke-width="1"/>', svgMax: '<circle cx="12" cy="12" r="8" stroke-width="4"/>' },
-      { id: 'ctrl-speed', key: 'speed', min: 0.1, max: 4, step: 0.01, svgMin: '<path d="M4 12h10M4 8h6M4 16h8" stroke-linecap="round"/>', svgMax: '<path d="M2 12h16M2 8h12M2 16h14M18 12a2 2 0 1 0-2-2M14 8a2 2 0 1 0-2-2M16 16a2 2 0 1 1-2 2" stroke-linecap="round"/>' },
-      { id: 'ctrl-opacity', key: 'opacity', min: 0.1, max: 1, step: 0.05, svgMin: '<circle cx="12" cy="12" r="8" stroke-dasharray="2 2"/>', svgMax: '<circle cx="12" cy="12" r="8" fill="rgba(255,255,255,.5)"/>' },
-      { id: 'ctrl-offx', key: 'offset', min: -50, max: 50, step: 1, svgMin: '<path d="M15 18l-6-6 6-6"/>', svgMax: '<path d="M9 18l6-6-6-6"/>' },
-      { id: 'ctrl-offy', key: 'offset', min: -50, max: 50, step: 1, svgMin: '<path d="M18 15l-6-6-6 6"/>', svgMax: '<path d="M18 9l-6 6-6-6"/>' }
-    ];
+    return SLIDERS;
   }
   static get UI_BINDINGS() {
-    return {
-      size: { id: 'ctrl-size', prop: 'value', cssVar: '--clock-size', format: v => `clamp(4rem, ${v}vw, 20vw)` },
-      weight: { id: 'ctrl-weight', prop: 'value', cssVar: '--clock-weight' }, speed: { id: 'ctrl-speed', prop: 'value' }, clockOpacity: { id: 'ctrl-opacity', prop: 'value' }, showCustomText: { id: 'ctrl-showcustom', prop: 'checked' }, customText: { id: 'ctrl-customtext', prop: 'value' }, offsetX: { id: 'ctrl-offx', prop: 'value' }, offsetY: { id: 'ctrl-offy', prop: 'value' },
-      is24Hour: { id: 'ctrl-24hr', prop: 'checked' }, leadingZero: { id: 'ctrl-leadingzero', prop: 'checked' },
-      showSeconds: { id: 'ctrl-seconds', prop: 'checked' }, showDate: { id: 'ctrl-date', prop: 'checked' },
-      pixelShift: { id: 'ctrl-pixelshift', prop: 'checked' }, nightMode: { id: 'ctrl-nightmode', prop: 'checked' }
-    };
+    return UI_BINDINGS;
   }
-  static BINDING_BY_ID = Object.assign(Object.create(null), Object.fromEntries(Object.entries(UIManager.UI_BINDINGS).map(([k, b]) => [b.id, [k, b]])));
+  static BINDING_BY_ID = BINDING_BY_ID;
   static hexToRgb(h) {
     return [parseInt(h.slice(1,3),16)/255, parseInt(h.slice(3,5),16)/255, parseInt(h.slice(5,7),16)/255];
   }
