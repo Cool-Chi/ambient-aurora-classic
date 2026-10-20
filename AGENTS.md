@@ -53,6 +53,8 @@ index.html:結構、SVG 濾鏡 #hollow-fx #glass-fx、script 載入順序
 - 不要在回覆貼出整檔程式碼。
 
 [Strict Workflow Directive(Jules)]
-- Do NOT create or open a Pull Request on GitHub.
-- Before pushing, generate a diff patch against origin/develop (`git diff origin/develop > diff.patch`) and include it in the commit.
-- Push your changes directly to a new remote branch, and output the branch name and modified file list.
+- Base Branch: Always branch off and target `develop` (NEVER target `main`).
+- Diff Generation: Before committing, generate `diff.patch` against origin/develop (`git diff origin/develop > diff.patch`) and include it in the commit using `git add -f diff.patch`.
+- PR Guidelines:
+  - Title: Follow Conventional Commits format matching the task (e.g., `feat(ui): ...`, `fix(clock): ...`).
+  - Description: Keep it minimal. First line `成因: <一句話>` (for bug/perf), followed by modified touchpoints.
