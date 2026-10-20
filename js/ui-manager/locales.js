@@ -12,7 +12,8 @@ const DICT = {
     tc: "Color", tcItems: ['Clock', 'AM', 'Date', 'Text'], mat: "Material", mats: ['Classic', 'Hollow', 'Glow', 'Glass'], sct: "Custom Text", ctph: "Enter text...", anchor: "Position", offset: "Offset X / Y",
     opacity: "Opacity", datePos: "Date Pos", datePositions: ['Below', 'Above'],
     df: "Format", dY: "Y", dM: "M", dD: "D", dW: "W",
-    idles: ['3s', '10s', 'Never']
+    idles: ['3s', '10s', 'Never'],
+    testConnection: 'Pipeline Verified'
   },
   zh: {
     lang: "語言", time: "24小時制", sec: "顯示秒數", tick: "跳秒動效",
@@ -26,7 +27,8 @@ const DICT = {
     tc: "字體色彩", tcItems: ['時鐘', 'AM', '日期', '文字'], mat: "字體材質", mats: ['實色', '鏤空', '高光', '玻璃'], sct: "自定義文字", ctph: "輸入文字...", anchor: "空間位置", offset: "X / Y 軸偏移",
     opacity: "透明度", datePos: "日期位置", datePositions: ['下方', '上方'],
     df: "格式", dY: "年", dM: "月", dD: "日", dW: "週",
-    idles: ['3秒', '10秒', '永不']
+    idles: ['3秒', '10秒', '永不'],
+    testConnection: '管線驗證通過'
   }
 };
 AA.DICT = DICT;
