@@ -20,5 +20,10 @@ Thumbs.db
 
 # Local development artifacts
 orig.html
-diff.patch
+# 忽略一般 patch，但允許 diff.patch 被追蹤
+*.patch
+!diff.patch
 dist/
+node_modules/
+package-lock.json
+.biome/

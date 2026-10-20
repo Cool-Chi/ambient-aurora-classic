@@ -1,7 +1,7 @@
 [Rules v5]
 本檔是 Ambient Aurora 的實作規則。你是代碼實作者(Jules 或 Claude),只依任務修改程式碼;不分析、不評論、不新增依賴、不引入框架或打包工具。在 develop 分支作業。
 
-[環境] 純前端靜態專案,無建置步驟、無 package.json。VM 內只做靜態檢查(有 Node 時可用 node --check <檔案> 檢查語法,或用 grep);無法驗證畫面與效能,不得宣稱已驗證。
+[環境] 純前端靜態專案,無打包建置步驟。VM 內使用 npm test (執行 node --check 語法檢查) 與 npm run lint 進行靜態檢查;無法驗證畫面與效能,不得宣稱已驗證。
 
 [模組] 路徑 → 掛載的 window.AA 成員
 css/style.css 全部樣式
@@ -49,5 +49,10 @@ index.html:結構、SVG 濾鏡 #hollow-fx #glass-fx、script 載入順序
 
 [交付(Jules)]
 - 只改任務【可修改檔案】內的檔案;計畫超出範圍時自行縮小。
-- PR 描述只寫:修 bug 或效能類第一行「成因:<一句話>」;其後最多 5 條「檔案#函式:改了什麼」;最後一行列出未能在 VM 驗證的項目(畫面、效能)。
+- 最終任務回覆只寫:修 bug 或效能類第一行「成因:<一句話>」;其後最多 5 條「檔案#函式:改了什麼」;列出未能在 VM 驗證的項目(畫面、效能);最後附上推送的分支名稱與被修改檔案清單。
 - 不要在回覆貼出整檔程式碼。
+
+[Strict Workflow Directive(Jules)]
+- Do NOT create or open a Pull Request on GitHub.
+- Before pushing, generate a diff patch against origin/develop (`git diff origin/develop > diff.patch`) and include it in the commit.
+- Push your changes directly to a new remote branch, and output the branch name and modified file list.
