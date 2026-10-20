@@ -1,0 +1,9 @@
+{
+  "name": "ambient-aurora",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --check js/*.js js/**/*.js",
+    "lint": "npx -y biome check js/ css/"
+  }
+}
