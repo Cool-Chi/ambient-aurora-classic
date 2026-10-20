@@ -1,0 +1,9 @@
+# 強制所有文字檔在儲存庫與工作區皆統一使用 LF
+* text=auto eol=lf
+
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.patch text eol=lf

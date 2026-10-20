@@ -1,0 +1,20 @@
+diff --git a/js/ui-manager/locales.js b/js/ui-manager/locales.js
+index ddaeaef..bfc44f2 100644
+--- a/js/ui-manager/locales.js
++++ b/js/ui-manager/locales.js
+@@ -1,6 +1,7 @@
+ (function (AA) {
+ const DICT = {
+   en: {
++    testConnection: 'Connection OK',
+     lang: "Language", time: "24-Hour Time", sec: "Show Seconds", tick: "Tick Anim",
+     mode: "Mode", theme: "Theme", size: "Size", weight: "Weight", speed: "Speed",
+     lp: "Low Power Mode", idle: "Idle Timeout", burn: "Burn-in Protection", night: "Night Mode",
+@@ -15,6 +16,7 @@ const DICT = {
+     idles: ['3s', '10s', 'Never']
+   },
+   zh: {
++    testConnection: '連線正常',
+     lang: "語言", time: "24小時制", sec: "顯示秒數", tick: "跳秒動效",
+     mode: "背景模式", theme: "色彩主題", size: "時鐘尺寸", weight: "字體粗細", speed: "背景流速",
+     lp: "低功耗模式", idle: "閒置隱藏", burn: "OLED 防烙印", night: "夜間護眼",
