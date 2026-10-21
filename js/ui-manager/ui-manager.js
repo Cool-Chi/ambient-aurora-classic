@@ -124,7 +124,7 @@ class UIManager {
     const anchorRow = `<div class="settings-row anchor-row"><span class="row-label">${d.anchor}</span><div class="anchor-grid" data-prop="anchor" role="radiogroup">${[...Array(9)].map((_, i) => `<button class="anchor-btn" data-value="${i}" role="radio"></button>`).join('')}</div></div>`;
     const ctRow = `<div class="settings-row"><input type="text" id="ctrl-customtext" class="ct-input" maxlength="30" placeholder="${d.ctph}"></div>`;
     const tabs = [
-      [[seg(d.font, 'fontStyle', ['SF Pro', 'New York', 'Mono']), tcRow, seg(`<span style="display:flex;align-items:center;gap:6px;">${d.mat}<button class="tc-chip" id="ctrl-material-target"><span class="tc-lbl" id="lbl-material-target">${d.tcItems[0]}</span></button></span>`, 'material', d.mats)], [slider('size'), slider('weight'), slider('opacity')], [tg('ctrl-24hr', d.time), tg('ctrl-leadingzero', d.lz), tg('ctrl-seconds', d.sec), seg(d.tick, 'clockAnimMode', d.ticks)], [tg('ctrl-date', d.date), mtg(d.df, [{l:d.dY,p:'showY'}, {l:d.dM,p:'showM'}, {l:d.dD,p:'showD'}, {l:d.dW,p:'showW'}]), seg(d.layout, 'clockLayout', d.layouts), seg(d.datePos, 'datePosition', d.datePositions)], [tg('ctrl-showcustom', d.sct), ctRow], [anchorRow, slider('offset', 'ctrl-offx'), slider('offset', 'ctrl-offy')]],
+      [[seg(d.font, 'fontStyle', ['SF Pro', 'New York', 'Mono']), tcRow, seg(`<span style=\"display:flex;align-items:center;gap:6px;\">${d.mat}<button class=\"tc-chip\" id=\"ctrl-material-target\"><span class=\"tc-lbl\" id=\"lbl-material-target\">${d.tcItems[0]}</span></button></span>`, 'material', d.mats)], [slider('size'), slider('weight'), slider('opacity')], [tg('ctrl-24hr', d.time), tg('ctrl-leadingzero', d.lz), tg('ctrl-seconds', d.sec), seg(d.tick, 'clockAnimMode', d.ticks)], [tg('ctrl-date', d.date), mtg(d.df, [{l:d.dY,p:'showY'}, {l:d.dM,p:'showM'}, {l:d.dD,p:'showD'}, {l:d.dW,p:'showW'}]), seg(d.layout, 'clockLayout', d.layouts), seg(d.datePos, 'datePosition', d.datePositions)], [tg('ctrl-showcustom', d.sct), ctRow], [anchorRow, slider('offset', 'ctrl-offx'), slider('offset', 'ctrl-offy')]],
       [[seg(d.mode, 'mode', d.modes, 1), theme], [slider('speed')]],
       [[langRow, seg(d.idle, 'idleTimeout', d.idles)], [tg('ctrl-pixelshift', d.burn), tg('ctrl-nightmode', d.night)]]
     ];
@@ -172,73 +172,105 @@ class UIManager {
     sp('--date-color', nightMode ? nightCol : rgba(dateColor, op));
     sp('--custom-text-color', nightMode ? nightCol : rgba(customTextColor, op));
     sp('--clock-shadow-color', nightMode ? 'transparent' : `rgba(255, 255, 255, ${0.2 * op})`);
-    const [r, g, b] = nightMode ? [217, 119, 54] : UIManager.hexToRgb(textColor).map(x => Math.round(x * 255));
-    const cColor = `rgba(${r}, ${g}, ${b}, ${op})`;
-    let fill = cColor, stroke = '0', blend = 'normal', digitFilter = 'none', filter = 'drop-shadow(0 8px 16px rgba(0,0,0,.5)) drop-shadow(0 0 4px var(--clock-shadow-color))';
-    if (material === 1) {
-      fill = `rgb(${r}, ${g}, ${b})`;
-      stroke = '0';
-      digitFilter = 'url(#hollow-fx)';
-      const hb = this.glassEls && this.glassEls.hollowBlur, hf = this.glassEls && this.glassEls.hollowFlood;
-      if (hb) hb.setAttribute('stdDeviation', Math.max(1.0, size * 0.095).toFixed(2));
-      if (hf) {
-        hf.setAttribute('flood-color', `rgb(${r}, ${g}, ${b})`);
-        hf.setAttribute('flood-opacity', String(op));
-      }
-    } else if (material === 2) {
-      const [rc, gc, bc] = [r, g, b].map(c => Math.round(c + (255 - c) * 0.38));
-      fill = `rgba(${rc}, ${gc}, ${bc}, ${op})`;
-      stroke = `max(1px, 0.015em) rgba(${r}, ${g}, ${b}, ${(0.9 * op).toFixed(2)})`;
-      blend = 'screen';
-      filter = `drop-shadow(0 0 2px rgba(255, 255, 255, ${(0.65 * op).toFixed(2)})) drop-shadow(0 0 6px rgba(${r}, ${g}, ${b}, ${(0.95 * op).toFixed(2)})) drop-shadow(0 0 16px rgba(${r}, ${g}, ${b}, ${(0.75 * op).toFixed(2)})) drop-shadow(0 0 34px rgba(${r}, ${g}, ${b}, ${(0.45 * op).toFixed(2)}))`;
-    } else if (material === 3) {
-      const maxC = Math.max(colorTarget[0], colorTarget[1], colorTarget[2], 0.01);
-      const [ar, ag, ab] = nightMode ? [217, 119, 54] : colorTarget.map(v => Math.round(clamp((v / maxC) * 195 + 60, 0, 255)));
-      const [gr, gg, gb] = nightMode ? [217, 119, 54] : [Math.round(r * 0.45 + ar * 0.55), Math.round(g * 0.45 + ag * 0.55), Math.round(b * 0.45 + ab * 0.55)];
-      const [sr, sg, sb] = nightMode ? [242, 168, 110] : [gr, gg, gb].map(c => Math.round(c + (255 - c) * 0.65));
-      const [cr, cg, cb] = nightMode ? [255, 210, 165] : [r, g, b].map(c => Math.round(c + (255 - c) * 0.92));
-      fill = `rgb(${gr}, ${gg}, ${gb})`;
-      stroke = '0';
-      digitFilter = 'none';
-      filter = `url(#glass-fx) drop-shadow(0 5px 10px rgba(0, 0, 0, ${(0.24 * op).toFixed(2)}))`;
-      const ge = this.glassEls;
-      if (ge && ge.bodyFlood) {
-        const setFlood = (el, col, a) => { el.setAttribute('flood-color', col); el.setAttribute('flood-opacity', (a * op).toFixed(3)); };
-        const reduceTrans = window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
-        setFlood(ge.bodyFlood, `rgb(${ar}, ${ag}, ${ab})`, reduceTrans ? 0.28 : 0.04 + this.glassPress * 0.06);
-        setFlood(ge.bevelFlood, `rgb(${gr}, ${gg}, ${gb})`, reduceTrans ? 0.36 : 0.17 + this.glassPress * 0.08);
-        setFlood(ge.causticFlood, `rgb(${sr}, ${sg}, ${sb})`, 0.36 + this.glassPress * 0.16);
-        setFlood(ge.whisperFlood, `rgb(${ar}, ${ag}, ${ab})`, 0.28);
-        setFlood(ge.crestFlood, `rgb(${cr}, ${cg}, ${cb})`, 0.95);
-        setFlood(ge.prismCFlood, '#38e8ff', nightMode ? 0 : 0.38);
-        setFlood(ge.prismWFlood, '#ff6ee0', nightMode ? 0 : 0.34);
-        if (this._glassStaticSize !== size) {
-          this._glassStaticSize = size;
-          ge.bevelBlur.setAttribute('stdDeviation', Math.min(2.0, Math.max(1.3, size * 0.14)).toFixed(2));
-          ge.crestBlur.setAttribute('stdDeviation', Math.min(0.4, Math.max(0.32, size * 0.024)).toFixed(2));
-          const mDist = String(Math.min(3, Math.max(1, Math.round(size * 0.12))));
-          ge.mwOff.setAttribute('dx', mDist); ge.meOff.setAttribute('dx', '-' + mDist);
-          ge.mnOff.setAttribute('dy', mDist); ge.msOff.setAttribute('dy', '-' + mDist);
-          const cDist = String(Math.min(2, Math.max(1, Math.round(size * 0.045))));
-          ge.cwOff.setAttribute('dx', cDist); ge.ceOff.setAttribute('dx', '-' + cDist);
-          ge.cnOff.setAttribute('dy', cDist); ge.csOff.setAttribute('dy', '-' + cDist);
+    const state = this.store.getState();
+    const [br, bg, bb] = nightMode ? [217, 119, 54] : UIManager.hexToRgb(textColor).map(x => Math.round(x * 255));
+    const cColor = `rgba(${br}, ${bg}, ${bb}, ${op})`;
+
+    const calcMat = (mat, hexCol, isClock) => {
+      const [r, g, b] = nightMode ? [217, 119, 54] : UIManager.hexToRgb(hexCol).map(x => Math.round(x * 255));
+      const bColor = `rgba(${r}, ${g}, ${b}, ${op})`;
+      let fill = bColor, stroke = '0', blend = 'normal', filter = 'drop-shadow(0 8px 16px rgba(0,0,0,.5)) drop-shadow(0 0 4px var(--clock-shadow-color))';
+      if (mat === 1) {
+        fill = `rgb(${r}, ${g}, ${b})`;
+        stroke = '0';
+        if (isClock) {
+          const hb = this.glassEls && this.glassEls.hollowBlur, hf = this.glassEls && this.glassEls.hollowFlood;
+          if (hb) hb.setAttribute('stdDeviation', Math.max(1.0, size * 0.095).toFixed(2));
+          if (hf) {
+            hf.setAttribute('flood-color', `rgb(${r}, ${g}, ${b})`);
+            hf.setAttribute('flood-opacity', String(op));
+          }
+        }
+      } else if (mat === 2) {
+        const [rc, gc, bc] = [r, g, b].map(c => Math.round(c + (255 - c) * 0.38));
+        fill = `rgba(${rc}, ${gc}, ${bc}, ${op})`;
+        stroke = `max(1px, 0.015em) rgba(${r}, ${g}, ${b}, ${(0.9 * op).toFixed(2)})`;
+        blend = 'screen';
+        filter = `drop-shadow(0 0 2px rgba(255, 255, 255, ${(0.65 * op).toFixed(2)})) drop-shadow(0 0 6px rgba(${r}, ${g}, ${b}, ${(0.95 * op).toFixed(2)})) drop-shadow(0 0 16px rgba(${r}, ${g}, ${b}, ${(0.75 * op).toFixed(2)})) drop-shadow(0 0 34px rgba(${r}, ${g}, ${b}, ${(0.45 * op).toFixed(2)}))`;
+      } else if (mat === 3) {
+        const maxC = Math.max(colorTarget[0], colorTarget[1], colorTarget[2], 0.01);
+        const [ar, ag, ab] = nightMode ? [217, 119, 54] : colorTarget.map(v => Math.round(clamp((v / maxC) * 195 + 60, 0, 255)));
+        const [gr, gg, gb] = nightMode ? [217, 119, 54] : [Math.round(r * 0.45 + ar * 0.55), Math.round(g * 0.45 + ag * 0.55), Math.round(b * 0.45 + ab * 0.55)];
+        const [sr, sg, sb] = nightMode ? [242, 168, 110] : [gr, gg, gb].map(c => Math.round(c + (255 - c) * 0.65));
+        const [cr, cg, cb] = nightMode ? [255, 210, 165] : [r, g, b].map(c => Math.round(c + (255 - c) * 0.92));
+        fill = `rgb(${gr}, ${gg}, ${gb})`;
+        stroke = '0';
+        filter = `url(#glass-fx) drop-shadow(0 5px 10px rgba(0, 0, 0, ${(0.24 * op).toFixed(2)}))`;
+        if (isClock) {
+          const ge = this.glassEls;
+          if (ge && ge.bodyFlood) {
+            const setFlood = (el, col, a) => { el.setAttribute('flood-color', col); el.setAttribute('flood-opacity', (a * op).toFixed(3)); };
+            const reduceTrans = window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
+            setFlood(ge.bodyFlood, `rgb(${ar}, ${ag}, ${ab})`, reduceTrans ? 0.28 : 0.04 + this.glassPress * 0.06);
+            setFlood(ge.bevelFlood, `rgb(${gr}, ${gg}, ${gb})`, reduceTrans ? 0.36 : 0.17 + this.glassPress * 0.08);
+            setFlood(ge.causticFlood, `rgb(${sr}, ${sg}, ${sb})`, 0.36 + this.glassPress * 0.16);
+            setFlood(ge.whisperFlood, `rgb(${ar}, ${ag}, ${ab})`, 0.28);
+            setFlood(ge.crestFlood, `rgb(${cr}, ${cg}, ${cb})`, 0.95);
+            setFlood(ge.prismCFlood, '#38e8ff', nightMode ? 0 : 0.38);
+            setFlood(ge.prismWFlood, '#ff6ee0', nightMode ? 0 : 0.34);
+            if (this._glassStaticSize !== size) {
+              this._glassStaticSize = size;
+              ge.bevelBlur.setAttribute('stdDeviation', Math.min(2.0, Math.max(1.3, size * 0.14)).toFixed(2));
+              ge.crestBlur.setAttribute('stdDeviation', Math.min(0.4, Math.max(0.32, size * 0.024)).toFixed(2));
+              const mDist = String(Math.min(3, Math.max(1, Math.round(size * 0.12))));
+              ge.mwOff.setAttribute('dx', mDist); ge.meOff.setAttribute('dx', '-' + mDist);
+              ge.mnOff.setAttribute('dy', mDist); ge.msOff.setAttribute('dy', '-' + mDist);
+              const cDist = String(Math.min(2, Math.max(1, Math.round(size * 0.045))));
+              ge.cwOff.setAttribute('dx', cDist); ge.ceOff.setAttribute('dx', '-' + cDist);
+              ge.cnOff.setAttribute('dy', cDist); ge.csOff.setAttribute('dy', '-' + cDist);
+            }
+          }
         }
       }
-      if (this._lastMat !== 3 || full) this._lastGlassDom = 0;
+      return { fill, stroke, blend, filter };
+    };
+
+    const cVars = calcMat(material, textColor, true);
+    const dVars = calcMat(state.dateMaterial, dateColor, false);
+    const ctVars = calcMat(state.customTextMaterial, customTextColor, false);
+
+    const isAnyGlass = material === 3 || (state.showDate && state.dateMaterial === 3) || (state.showCustomText && state.customTextMaterial === 3);
+
+    if (isAnyGlass && (!this._wasAnyGlass || full)) {
+      this._lastGlassDom = 0;
       this.updateGlassVectors(true);
       this.startGlassLoop();
     }
+
     this._lastMat = material;
-    if (material !== 3) {
+    this._wasAnyGlass = isAnyGlass;
+
+    if (!isAnyGlass) {
       this.stopGlassLoop();
       sp('--glass-press', '1');
     }
+
     sp('--clock-color', cColor);
-    sp('--clock-fill', fill);
-    sp('--clock-stroke', stroke);
-    sp('--clock-blend', blend);
-    sp('--digit-filter', digitFilter);
-    sp('--clock-filter', filter);
+    sp('--clock-fill', cVars.fill);
+    sp('--clock-stroke', cVars.stroke);
+    sp('--clock-blend', cVars.blend);
+    sp('--digit-filter', material === 1 ? 'url(#hollow-fx)' : 'none');
+    sp('--clock-filter', cVars.filter);
+
+    sp('--date-fill', dVars.fill);
+    sp('--date-stroke', dVars.stroke);
+    sp('--date-blend', dVars.blend);
+    sp('--date-filter', dVars.filter);
+
+    sp('--custom-text-fill', ctVars.fill);
+    sp('--custom-text-stroke', ctVars.stroke);
+    sp('--custom-text-blend', ctVars.blend);
+    sp('--custom-text-filter', ctVars.filter);
     const clk = this.clockEl;
     if (!full && clk) {
       clk.style.opacity = 0.99;
@@ -259,7 +291,7 @@ class UIManager {
     }
   }
   handleGyro(e) {
-    if (e.gamma === null || e.beta === null || this.store.getState().material !== 3) return;
+    const st = this.store.getState(); if (e.gamma === null || e.beta === null || !(st.material === 3 || (st.showDate && st.dateMaterial === 3) || (st.showCustomText && st.customTextMaterial === 3))) return;
     this.hasGyro = true;
     this.gyroX = clamp(e.gamma / 35, -1, 1);
     this.gyroY = clamp((e.beta - 45) / 35, -1, 1);
@@ -523,7 +555,7 @@ class UIManager {
       clearTimeout(this.holdTimeout);
       this.holdTimeout = null;
     }
-    if ((this.store.getState().material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3))) this.startGlassLoop();
+    if (((this.store.getState().material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3)) || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3))) this.startGlassLoop();
   }
   async requestWakeLock() {
     if (this.wakeLock || this.wakeLockPending) return;
@@ -553,7 +585,7 @@ class UIManager {
       this.ptrActiveUntil = performance.now() + 900;
     };
     on(document, 'pointerdown', e => {
-      if ((this.store.getState().material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3))) { trackGlassPtr(e); this.tryRequestGyro(); }
+      if (((this.store.getState().material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3)) || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3))) { trackGlassPtr(e); this.tryRequestGyro(); }
       if (e.target.type === 'range') document.body.classList.add('is-dragging');
       const tg = e.target.closest('.toggle-switch');
       if (tg) { this.tgStart = e.clientX; this.tgTarget = tg; this.tgDragged = false; }
@@ -572,7 +604,7 @@ class UIManager {
       if (anchorHold && (Math.abs(e.clientX - anchorX) > 12 || Math.abs(e.clientY - anchorY) > 12)) clearAnchorHold();
       const state = this.store.getState();
       if (state.isHolding && this.touchStartX !== null && (Math.abs(e.clientX - this.touchStartX) > 15 || Math.abs(e.clientY - this.touchStartY) > 15)) this.exitApp(false);
-      if ((state.material === 3 || (state.showDate && state.dateMaterial === 3) || (state.showCustomText && state.customTextMaterial === 3))) trackGlassPtr(e);
+      if (((state.material === 3 || (state.showDate && state.dateMaterial === 3) || (state.showCustomText && state.customTextMaterial === 3)) || (state.showDate && state.dateMaterial === 3) || (state.showCustomText && state.customTextMaterial === 3))) trackGlassPtr(e);
       if (this.tgTarget && this.tgStart !== null) {
         const dx = e.clientX - this.tgStart;
         if (Math.abs(dx) > 8) {
