@@ -412,8 +412,8 @@ class UIManager {
     const state = this.store.getState(), { lowPower, colorTarget, anchor, offsetX, offsetY } = state;
     const root = document.documentElement, sp = (k, v) => root.style.setProperty(k, v);
     const full = changedKey === null;
-    if (!full && !skipAnim && (changedKey === 'material' || changedKey === 'fontStyle')) {
-      const targetEl = changedKey === 'fontStyle' ? this.clockWrapperEl : this.clockEl;
+    if (!full && !skipAnim && (changedKey === 'material' || changedKey === 'dateMaterial' || changedKey === 'customTextMaterial' || changedKey === 'fontStyle')) {
+      const targetEl = changedKey === 'fontStyle' ? this.clockWrapperEl : (changedKey === 'material' ? this.clockEl : (changedKey === 'dateMaterial' ? $('date') : $('custom-text')));
       if (this.typoAnim) { this.typoAnim.cancel(); this.typoAnim = null; }
       if (targetEl) {
         const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, ease = EASE_OUT;
@@ -433,7 +433,7 @@ class UIManager {
           inAnim.onfinish = inAnim.oncancel = () => { if (this.typoAnim === inAnim) this.typoAnim = null; };
         };
       } else this.applyVisualVars(false);
-    } else if (full || skipAnim || ['nightMode', 'textColor', 'ampmColor', 'dateColor', 'customTextColor', 'clockOpacity', 'size', 'colorTarget'].includes(changedKey)) {
+    } else if (full || skipAnim || ['nightMode', 'textColor', 'ampmColor', 'dateColor', 'customTextColor', 'clockOpacity', 'size', 'colorTarget', 'dateMaterial', 'customTextMaterial'].includes(changedKey)) {
       this.applyVisualVars(full);
     }
     if (full || changedKey === 'anchor') { const ax = anchor % 3, ay = Math.floor(anchor / 3), F = ['flex-start', 'center', 'flex-end'], O = ['4vmin', '50%', 'calc(100% - 4vmin)']; sp('--pos-x', F[ax]); sp('--pos-y', F[ay]); sp('--ox', O[ax]); sp('--oy', O[ay]); qsa(document, '.anchor-btn').forEach((b, i) => b.classList.toggle('active', i === anchor)); }

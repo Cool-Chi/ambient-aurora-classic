@@ -58,7 +58,7 @@ index 147b043..0e2af85 100644
        case 'customText': return typeof v === 'string' ? v.substring(0, 30) : undefined;
        case 'anchor': return isInt(v, 0, 8) ? v : undefined;
 diff --git a/js/ui-manager/ui-manager.js b/js/ui-manager/ui-manager.js
-index a300fba..c52857d 100644
+index a300fba..c09096c 100644
 --- a/js/ui-manager/ui-manager.js
 +++ b/js/ui-manager/ui-manager.js
 @@ -124,7 +124,7 @@ class UIManager {
@@ -258,6 +258,26 @@ index a300fba..c52857d 100644
      const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
      const fdt = clamp(now - this.lastGlassTick, 1, 64);
      this.lastGlassTick = now;
+@@ -380,8 +412,8 @@ class UIManager {
+     const state = this.store.getState(), { lowPower, colorTarget, anchor, offsetX, offsetY } = state;
+     const root = document.documentElement, sp = (k, v) => root.style.setProperty(k, v);
+     const full = changedKey === null;
+-    if (!full && !skipAnim && (changedKey === 'material' || changedKey === 'fontStyle')) {
+-      const targetEl = changedKey === 'fontStyle' ? this.clockWrapperEl : this.clockEl;
++    if (!full && !skipAnim && (changedKey === 'material' || changedKey === 'dateMaterial' || changedKey === 'customTextMaterial' || changedKey === 'fontStyle')) {
++      const targetEl = changedKey === 'fontStyle' ? this.clockWrapperEl : (changedKey === 'material' ? this.clockEl : (changedKey === 'dateMaterial' ? $('date') : $('custom-text')));
+       if (this.typoAnim) { this.typoAnim.cancel(); this.typoAnim = null; }
+       if (targetEl) {
+         const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, ease = EASE_OUT;
+@@ -401,7 +433,7 @@ class UIManager {
+           inAnim.onfinish = inAnim.oncancel = () => { if (this.typoAnim === inAnim) this.typoAnim = null; };
+         };
+       } else this.applyVisualVars(false);
+-    } else if (full || skipAnim || ['nightMode', 'textColor', 'ampmColor', 'dateColor', 'customTextColor', 'clockOpacity', 'size', 'colorTarget'].includes(changedKey)) {
++    } else if (full || skipAnim || ['nightMode', 'textColor', 'ampmColor', 'dateColor', 'customTextColor', 'clockOpacity', 'size', 'colorTarget', 'dateMaterial', 'customTextMaterial'].includes(changedKey)) {
+       this.applyVisualVars(full);
+     }
+     if (full || changedKey === 'anchor') { const ax = anchor % 3, ay = Math.floor(anchor / 3), F = ['flex-start', 'center', 'flex-end'], O = ['4vmin', '50%', 'calc(100% - 4vmin)']; sp('--pos-x', F[ax]); sp('--pos-y', F[ay]); sp('--ox', O[ax]); sp('--oy', O[ay]); qsa(document, '.anchor-btn').forEach((b, i) => b.classList.toggle('active', i === anchor)); }
 @@ -433,6 +465,20 @@ class UIManager {
      });
      if (full) {
@@ -319,70 +339,41 @@ index a300fba..c52857d 100644
        else if (anchorBtn) { if (!holdFired && !anchorBtn.classList.contains('active')) { haptic(10); this.store.setState('anchor', +anchorBtn.dataset.value); } holdFired = false; }
        else if (segBtn && !segBtn.classList.contains('active')) {
          if (segBtn.closest('.segmented-control').dataset.prop === 'material' && +segBtn.dataset.value === 3) this.tryRequestGyro();
-diff --git a/patch_opacity.js b/patch_opacity.js
+diff --git a/patch_reapply.js b/patch_reapply.js
 new file mode 100644
-index 0000000..ca38e82
+index 0000000..504c3bd
 --- /dev/null
-+++ b/patch_opacity.js
-@@ -0,0 +1,19 @@
++++ b/patch_reapply.js
+@@ -0,0 +1,8 @@
 +const fs = require('fs');
 +let code = fs.readFileSync('js/ui-manager/ui-manager.js', 'utf8');
 +
-+const patchStr = `
-+    sp('--custom-text-blend', ctVars.blend);
-+    sp('--custom-text-filter', ctVars.filter);
-+
-+    const clk = this.clockEl;
-+    if (!full && clk) {
-+      clk.style.opacity = '0.99';
-+      clearTimeout(this.rp);
-+      this.rp = setTimeout(() => { if (this.clockEl) this.clockEl.style.opacity = ''; }, 50);
-+    }
-+  }
-+`;
-+
-+code = code.replace(/sp\('--custom-text-filter', ctVars.filter\);\s*\}/, patchStr);
-+fs.writeFileSync('js/ui-manager/ui-manager.js', code);
-+console.log('patched opacity');
-diff --git a/patch_ui_all.js b/patch_ui_all.js
++// The git checkout wiped out ALL the changes we did in the second try!
++// Because the diff.patch was created BEFORE I ran patch_ui_all.js and patch_ui_apply.js!
++// Oh, no, the first try was submitted, and then git checkout was run in the context of the branch jules-...
++// Then I rm'd the patch files, but wait...
++// Let's check what js/ui-manager/ui-manager.js contains.
+diff --git a/patch_render.js b/patch_render.js
 new file mode 100644
-index 0000000..ebb800d
+index 0000000..8d1e4cd
 --- /dev/null
-+++ b/patch_ui_all.js
-@@ -0,0 +1,81 @@
++++ b/patch_render.js
+@@ -0,0 +1,43 @@
 +const fs = require('fs');
 +let code = fs.readFileSync('js/ui-manager/ui-manager.js', 'utf8');
 +
-+// The reason materialTarget is missing is because `git checkout` un-did the patches we applied.
-+// I need to apply them again.
++// Issue 1: Layout of the button. The label string used for the material segmented control is:
++const oldLabelStr = "\\`<span style=\\\"display:flex;align-items:center;gap:6px;\\\">\${d.mat}<button class=\\\"tc-chip\\\" id=\\\"ctrl-material-target\\\"><span class=\\\"tc-lbl\\\" id=\\\"lbl-material-target\\\">\${d.tcItems[0]}</span></button></span>\\`";
 +
-+// 1. renderPanel - insert materialTarget button
-+const oldTabs = "[[seg(d.font, 'fontStyle', ['SF Pro', 'New York', 'Mono']), tcRow, seg(d.mat, 'material', d.mats)], [slider('size'), slider('weight'), slider('opacity')]";
-+const newTabs = oldTabs.replace("d.mat", "\`<span style=\\\"display:flex;align-items:center;gap:6px;\\\">\${d.mat}<button class=\\\"tc-chip\\\" id=\\\"ctrl-material-target\\\"><span class=\\\"tc-lbl\\\" id=\\\"lbl-material-target\\\">\${d.tcItems[0]}</span></button></span>\`");
-+code = code.replace(oldTabs, newTabs);
++// We want it to be right-aligned in the col-layout.
++// Let's use flex row, justify-content space-between for the whole label container, so the button goes to the right edge.
++const newLabelStr = "\`<div style=\\\"display:flex;justify-content:space-between;align-items:center;width:100%;\\\">\${d.mat}<div class=\\\"tc-group\\\" style=\\\"padding:0;background:transparent;\\\"><button class=\\\"tc-chip\\\" id=\\\"ctrl-material-target\\\"><span class=\\\"tc-lbl\\\" id=\\\"lbl-material-target\\\">\${d.tcItems[0]}</span></button></div></div>\`";
 +
-+// 2. bindEvents - click handlers
-+const clickHandler = `
-+      else if (mtgBtn) { haptic(10); const p = mtgBtn.dataset.prop; this.store.setState(p, !this.store.getState()[p]); }
-+`;
-+const newClickHandler = `
-+      else if (mtgBtn) { haptic(10); const p = mtgBtn.dataset.prop; this.store.setState(p, !this.store.getState()[p]); }
-+      else if (e.target.closest('#ctrl-material-target')) {
-+        haptic(10);
-+        const t = this.store.getState().materialTarget;
-+        const next = t === 'clock' ? 'date' : t === 'date' ? 'custom' : 'clock';
-+        this.store.setState('materialTarget', next);
-+      }
-+`;
-+code = code.replace(clickHandler, newClickHandler);
++code = code.replace("`<span style=\"display:flex;align-items:center;gap:6px;\">${d.mat}<button class=\"tc-chip\" id=\"ctrl-material-target\"><span class=\"tc-lbl\" id=\"lbl-material-target\">${d.tcItems[0]}</span></button></span>`", newLabelStr);
 +
-+const segHandler = `
-+      else if (segBtn && !segBtn.classList.contains('active')) {
-+        if (segBtn.closest('.segmented-control').dataset.prop === 'material' && +segBtn.dataset.value === 3) this.tryRequestGyro();
-+        haptic(10); this.store.setState(segBtn.closest('.segmented-control').dataset.prop, isNaN(segBtn.dataset.value) ? segBtn.dataset.value : parseInt(segBtn.dataset.value));
-+      }
-+`;
-+const newSegHandler = `
++// Issue 2: Clicking different material options only changes the material for the numbers.
++// The code in segBtn handler does this:
++/*
 +      else if (segBtn && !segBtn.classList.contains('active')) {
 +        const ctrl = segBtn.closest('.segmented-control');
 +        const prop = ctrl.dataset.prop;
@@ -395,258 +386,90 @@ index 0000000..ebb800d
 +        }
 +        this.store.setState(targetProp, isNaN(segBtn.dataset.value) ? segBtn.dataset.value : parseInt(segBtn.dataset.value));
 +      }
-+`;
-+code = code.replace(segHandler, newSegHandler);
-+
-+// 3. syncUI
-+const syncUIStr = `
-+    } else {
-+      const c = qs(document, \`.segmented-control[data-prop="\${changedKey}"]\`);
-+      const val = state[changedKey];
-+      if (c && val !== undefined) requestAnimationFrame(() => this.updateSegmentHighlight(c, val, skipAnim));
-+    }
-+`;
-+const newSyncUIStr = `
++*/
++// It sets the state properly. E.g. dateMaterial = 3.
++// Wait, when targetProp is 'dateMaterial', what happens in syncUI?
++// In syncUI:
++/*
 +    } else if (['material', 'dateMaterial', 'customTextMaterial', 'materialTarget'].includes(changedKey) || full) {
 +      if (full || changedKey === 'materialTarget' || changedKey === (state.materialTarget === 'clock' ? 'material' : state.materialTarget === 'date' ? 'dateMaterial' : 'customTextMaterial')) {
 +        const c = qs(document, \`.segmented-control[data-prop="material"]\`);
 +        const targetVal = state.materialTarget === 'clock' ? state.material : state.materialTarget === 'date' ? state.dateMaterial : state.customTextMaterial;
 +        if (c && targetVal !== undefined) requestAnimationFrame(() => this.updateSegmentHighlight(c, targetVal, skipAnim));
 +      }
-+      if (full || changedKey === 'materialTarget') {
-+        const lbl = $('lbl-material-target');
-+        if (lbl) {
-+          const { lang } = state;
-+          const tcItems = UIManager.DICT[lang].tcItems;
-+          lbl.textContent = state.materialTarget === 'clock' ? tcItems[0] : state.materialTarget === 'date' ? tcItems[2] : tcItems[3];
-+        }
-+      }
-+    } else {
-+      const c = qs(document, \`.segmented-control[data-prop="\${changedKey}"]\`);
-+      const val = state[changedKey];
-+      if (c && val !== undefined) requestAnimationFrame(() => this.updateSegmentHighlight(c, val, skipAnim));
-+    }
-+`;
-+code = code.replace(syncUIStr, newSyncUIStr);
-+
-+fs.writeFileSync('js/ui-manager/ui-manager.js', code);
-+console.log('patched UI interactions in ui-manager.js');
-diff --git a/patch_ui_apply.js b/patch_ui_apply.js
++      ...
++*/
++// And syncUI will call `applyVisualVars` if `changedKey === 'material'`.
++// Wait!! If `changedKey === 'dateMaterial'` or `customTextMaterial`, `syncUI` does NOT call `applyVisualVars`!
++// Let's check `syncUI` logic!
+diff --git a/patch_syncUI.js b/patch_syncUI.js
 new file mode 100644
-index 0000000..9ba9fc3
+index 0000000..9f92b33
 --- /dev/null
-+++ b/patch_ui_apply.js
-@@ -0,0 +1,206 @@
++++ b/patch_syncUI.js
+@@ -0,0 +1,37 @@
 +const fs = require('fs');
 +let code = fs.readFileSync('js/ui-manager/ui-manager.js', 'utf8');
 +
-+const targetStr = `
-+    const [r, g, b] = nightMode ? [217, 119, 54] : UIManager.hexToRgb(textColor).map(x => Math.round(x * 255));
-+    const cColor = \`rgba(\${r}, \${g}, \${b}, \${op})\`;
-+    let fill = cColor, stroke = '0', blend = 'normal', digitFilter = 'none', filter = 'drop-shadow(0 8px 16px rgba(0,0,0,.5)) drop-shadow(0 0 4px var(--clock-shadow-color))';
-+    if (material === 1) {
-+      fill = \`rgb(\${r}, \${g}, \${b})\`;
-+      stroke = '0';
-+      digitFilter = 'url(#hollow-fx)';
-+      const hb = this.glassEls && this.glassEls.hollowBlur, hf = this.glassEls && this.glassEls.hollowFlood;
-+      if (hb) hb.setAttribute('stdDeviation', Math.max(1.0, size * 0.095).toFixed(2));
-+      if (hf) {
-+        hf.setAttribute('flood-color', \`rgb(\${r}, \${g}, \${b})\`);
-+        hf.setAttribute('flood-opacity', String(op));
-+      }
-+    } else if (material === 2) {
-+      const [rc, gc, bc] = [r, g, b].map(c => Math.round(c + (255 - c) * 0.38));
-+      fill = \`rgba(\${rc}, \${gc}, \${bc}, \${op})\`;
-+      stroke = \`max(1px, 0.015em) rgba(\${r}, \${g}, \${b}, \${(0.9 * op).toFixed(2)})\`;
-+      blend = 'screen';
-+      filter = \`drop-shadow(0 0 2px rgba(255, 255, 255, \${(0.65 * op).toFixed(2)})) drop-shadow(0 0 6px rgba(\${r}, \${g}, \${b}, \${(0.95 * op).toFixed(2)})) drop-shadow(0 0 16px rgba(\${r}, \${g}, \${b}, \${(0.75 * op).toFixed(2)})) drop-shadow(0 0 34px rgba(\${r}, \${g}, \${b}, \${(0.45 * op).toFixed(2)}))\`;
-+    } else if (material === 3) {
-+      const maxC = Math.max(colorTarget[0], colorTarget[1], colorTarget[2], 0.01);
-+      const [ar, ag, ab] = nightMode ? [217, 119, 54] : colorTarget.map(v => Math.round(clamp((v / maxC) * 195 + 60, 0, 255)));
-+      const [gr, gg, gb] = nightMode ? [217, 119, 54] : [Math.round(r * 0.45 + ar * 0.55), Math.round(g * 0.45 + ag * 0.55), Math.round(b * 0.45 + ab * 0.55)];
-+      const [sr, sg, sb] = nightMode ? [242, 168, 110] : [gr, gg, gb].map(c => Math.round(c + (255 - c) * 0.65));
-+      const [cr, cg, cb] = nightMode ? [255, 210, 165] : [r, g, b].map(c => Math.round(c + (255 - c) * 0.92));
-+      fill = \`rgb(\${gr}, \${gg}, \${gb})\`;
-+      stroke = '0';
-+      digitFilter = 'none';
-+      filter = \`url(#glass-fx) drop-shadow(0 5px 10px rgba(0, 0, 0, \${(0.24 * op).toFixed(2)}))\`;
-+      const ge = this.glassEls;
-+      if (ge && ge.bodyFlood) {
-+        const setFlood = (el, col, a) => { el.setAttribute('flood-color', col); el.setAttribute('flood-opacity', (a * op).toFixed(3)); };
-+        const reduceTrans = window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
-+        setFlood(ge.bodyFlood, \`rgb(\${ar}, \${ag}, \${ab})\`, reduceTrans ? 0.28 : 0.04 + this.glassPress * 0.06);
-+        setFlood(ge.bevelFlood, \`rgb(\${gr}, \${gg}, \${gb})\`, reduceTrans ? 0.36 : 0.17 + this.glassPress * 0.08);
-+        setFlood(ge.causticFlood, \`rgb(\${sr}, \${sg}, \${sb})\`, 0.36 + this.glassPress * 0.16);
-+        setFlood(ge.whisperFlood, \`rgb(\${ar}, \${ag}, \${ab})\`, 0.28);
-+        setFlood(ge.crestFlood, \`rgb(\${cr}, \${cg}, \${cb})\`, 0.95);
-+        setFlood(ge.prismCFlood, '#38e8ff', nightMode ? 0 : 0.38);
-+        setFlood(ge.prismWFlood, '#ff6ee0', nightMode ? 0 : 0.34);
-+        if (this._glassStaticSize !== size) {
-+          this._glassStaticSize = size;
-+          ge.bevelBlur.setAttribute('stdDeviation', Math.min(2.0, Math.max(1.3, size * 0.14)).toFixed(2));
-+          ge.crestBlur.setAttribute('stdDeviation', Math.min(0.4, Math.max(0.32, size * 0.024)).toFixed(2));
-+          const mDist = String(Math.min(3, Math.max(1, Math.round(size * 0.12))));
-+          ge.mwOff.setAttribute('dx', mDist); ge.meOff.setAttribute('dx', '-' + mDist);
-+          ge.mnOff.setAttribute('dy', mDist); ge.msOff.setAttribute('dy', '-' + mDist);
-+          const cDist = String(Math.min(2, Math.max(1, Math.round(size * 0.045))));
-+          ge.cwOff.setAttribute('dx', cDist); ge.ceOff.setAttribute('dx', '-' + cDist);
-+          ge.cnOff.setAttribute('dy', cDist); ge.csOff.setAttribute('dy', '-' + cDist);
-+        }
-+      }
-+      if (this._lastMat !== 3 || full) this._lastGlassDom = 0;
-+      this.updateGlassVectors(true);
-+      this.startGlassLoop();
++// I need to add 'dateMaterial' and 'customTextMaterial' to the list of keys that trigger an animation or update.
++// In the current logic:
++/*
++    if (!full && !skipAnim && (changedKey === 'material' || changedKey === 'fontStyle')) {
++      const targetEl = changedKey === 'fontStyle' ? this.clockWrapperEl : this.clockEl;
++      ...
++    } else if (full || skipAnim || ['nightMode', 'textColor', 'ampmColor', 'dateColor', 'customTextColor', 'clockOpacity', 'size', 'colorTarget'].includes(changedKey)) {
++      this.applyVisualVars(full);
 +    }
-+    this._lastMat = material;
-+    if (material !== 3) {
-+      this.stopGlassLoop();
-+      sp('--glass-press', '1');
-+    }
-+    sp('--clock-color', cColor);
-+    sp('--clock-fill', fill);
-+    sp('--clock-stroke', stroke);
-+    sp('--clock-blend', blend);
-+    sp('--digit-filter', digitFilter);
-+    sp('--clock-filter', filter);
-+    const clk = this.clockEl;
-+    if (!full && clk) {
-+      clk.style.opacity = 0.99;
-+      clearTimeout(this.rp);
-+      this.rp = setTimeout(() => clk.style.opacity = '', 50);
-+    }`;
++*/
 +
-+const replaceStr = `
-+    const state = this.store.getState();
-+    const [br, bg, bb] = nightMode ? [217, 119, 54] : UIManager.hexToRgb(textColor).map(x => Math.round(x * 255));
-+    const cColor = \`rgba(\${br}, \${bg}, \${bb}, \${op})\`;
++const oldCond1 = "if (!full && !skipAnim && (changedKey === 'material' || changedKey === 'fontStyle')) {";
++const newCond1 = "if (!full && !skipAnim && (changedKey === 'material' || changedKey === 'dateMaterial' || changedKey === 'customTextMaterial' || changedKey === 'fontStyle')) {";
 +
-+    const calcMat = (mat, hexCol, isClock) => {
-+      const [r, g, b] = nightMode ? [217, 119, 54] : UIManager.hexToRgb(hexCol).map(x => Math.round(x * 255));
-+      const bColor = \`rgba(\${r}, \${g}, \${b}, \${op})\`;
-+      let fill = bColor, stroke = '0', blend = 'normal', filter = 'drop-shadow(0 8px 16px rgba(0,0,0,.5)) drop-shadow(0 0 4px var(--clock-shadow-color))';
-+      if (mat === 1) {
-+        fill = \`rgb(\${r}, \${g}, \${b})\`;
-+        stroke = '0';
-+        if (isClock) {
-+          const hb = this.glassEls && this.glassEls.hollowBlur, hf = this.glassEls && this.glassEls.hollowFlood;
-+          if (hb) hb.setAttribute('stdDeviation', Math.max(1.0, size * 0.095).toFixed(2));
-+          if (hf) {
-+            hf.setAttribute('flood-color', \`rgb(\${r}, \${g}, \${b})\`);
-+            hf.setAttribute('flood-opacity', String(op));
-+          }
-+        }
-+      } else if (mat === 2) {
-+        const [rc, gc, bc] = [r, g, b].map(c => Math.round(c + (255 - c) * 0.38));
-+        fill = \`rgba(\${rc}, \${gc}, \${bc}, \${op})\`;
-+        stroke = \`max(1px, 0.015em) rgba(\${r}, \${g}, \${b}, \${(0.9 * op).toFixed(2)})\`;
-+        blend = 'screen';
-+        filter = \`drop-shadow(0 0 2px rgba(255, 255, 255, \${(0.65 * op).toFixed(2)})) drop-shadow(0 0 6px rgba(\${r}, \${g}, \${b}, \${(0.95 * op).toFixed(2)})) drop-shadow(0 0 16px rgba(\${r}, \${g}, \${b}, \${(0.75 * op).toFixed(2)})) drop-shadow(0 0 34px rgba(\${r}, \${g}, \${b}, \${(0.45 * op).toFixed(2)}))\`;
-+      } else if (mat === 3) {
-+        const maxC = Math.max(colorTarget[0], colorTarget[1], colorTarget[2], 0.01);
-+        const [ar, ag, ab] = nightMode ? [217, 119, 54] : colorTarget.map(v => Math.round(clamp((v / maxC) * 195 + 60, 0, 255)));
-+        const [gr, gg, gb] = nightMode ? [217, 119, 54] : [Math.round(r * 0.45 + ar * 0.55), Math.round(g * 0.45 + ag * 0.55), Math.round(b * 0.45 + ab * 0.55)];
-+        const [sr, sg, sb] = nightMode ? [242, 168, 110] : [gr, gg, gb].map(c => Math.round(c + (255 - c) * 0.65));
-+        const [cr, cg, cb] = nightMode ? [255, 210, 165] : [r, g, b].map(c => Math.round(c + (255 - c) * 0.92));
-+        fill = \`rgb(\${gr}, \${gg}, \${gb})\`;
-+        stroke = '0';
-+        filter = \`url(#glass-fx) drop-shadow(0 5px 10px rgba(0, 0, 0, \${(0.24 * op).toFixed(2)}))\`;
-+        if (isClock) {
-+          const ge = this.glassEls;
-+          if (ge && ge.bodyFlood) {
-+            const setFlood = (el, col, a) => { el.setAttribute('flood-color', col); el.setAttribute('flood-opacity', (a * op).toFixed(3)); };
-+            const reduceTrans = window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
-+            setFlood(ge.bodyFlood, \`rgb(\${ar}, \${ag}, \${ab})\`, reduceTrans ? 0.28 : 0.04 + this.glassPress * 0.06);
-+            setFlood(ge.bevelFlood, \`rgb(\${gr}, \${gg}, \${gb})\`, reduceTrans ? 0.36 : 0.17 + this.glassPress * 0.08);
-+            setFlood(ge.causticFlood, \`rgb(\${sr}, \${sg}, \${sb})\`, 0.36 + this.glassPress * 0.16);
-+            setFlood(ge.whisperFlood, \`rgb(\${ar}, \${ag}, \${ab})\`, 0.28);
-+            setFlood(ge.crestFlood, \`rgb(\${cr}, \${cg}, \${cb})\`, 0.95);
-+            setFlood(ge.prismCFlood, '#38e8ff', nightMode ? 0 : 0.38);
-+            setFlood(ge.prismWFlood, '#ff6ee0', nightMode ? 0 : 0.34);
-+            if (this._glassStaticSize !== size) {
-+              this._glassStaticSize = size;
-+              ge.bevelBlur.setAttribute('stdDeviation', Math.min(2.0, Math.max(1.3, size * 0.14)).toFixed(2));
-+              ge.crestBlur.setAttribute('stdDeviation', Math.min(0.4, Math.max(0.32, size * 0.024)).toFixed(2));
-+              const mDist = String(Math.min(3, Math.max(1, Math.round(size * 0.12))));
-+              ge.mwOff.setAttribute('dx', mDist); ge.meOff.setAttribute('dx', '-' + mDist);
-+              ge.mnOff.setAttribute('dy', mDist); ge.msOff.setAttribute('dy', '-' + mDist);
-+              const cDist = String(Math.min(2, Math.max(1, Math.round(size * 0.045))));
-+              ge.cwOff.setAttribute('dx', cDist); ge.ceOff.setAttribute('dx', '-' + cDist);
-+              ge.cnOff.setAttribute('dy', cDist); ge.csOff.setAttribute('dy', '-' + cDist);
-+            }
-+          }
-+        }
-+      }
-+      return { fill, stroke, blend, filter };
-+    };
++const oldCond2 = "const targetEl = changedKey === 'fontStyle' ? this.clockWrapperEl : this.clockEl;";
++const newCond2 = "const targetEl = changedKey === 'fontStyle' ? this.clockWrapperEl : (changedKey === 'material' ? this.clockEl : (changedKey === 'dateMaterial' ? $('date') : $('custom-text')));";
 +
-+    const cVars = calcMat(material, textColor, true);
-+    const dVars = calcMat(state.dateMaterial, dateColor, false);
-+    const ctVars = calcMat(state.customTextMaterial, customTextColor, false);
++const oldCond3 = "} else if (full || skipAnim || ['nightMode', 'textColor', 'ampmColor', 'dateColor', 'customTextColor', 'clockOpacity', 'size', 'colorTarget'].includes(changedKey)) {";
++const newCond3 = "} else if (full || skipAnim || ['nightMode', 'textColor', 'ampmColor', 'dateColor', 'customTextColor', 'clockOpacity', 'size', 'colorTarget', 'dateMaterial', 'customTextMaterial'].includes(changedKey)) {";
 +
-+    const isAnyGlass = material === 3 || (state.showDate && state.dateMaterial === 3) || (state.showCustomText && state.customTextMaterial === 3);
 +
-+    if (isAnyGlass && (!this._wasAnyGlass || full)) {
-+      this._lastGlassDom = 0;
-+      this.updateGlassVectors(true);
-+      this.startGlassLoop();
-+    }
++code = code.replace(oldCond1, newCond1);
++code = code.replace(oldCond2, newCond2);
++code = code.replace(oldCond3, newCond3);
 +
-+    this._lastMat = material;
-+    this._wasAnyGlass = isAnyGlass;
++// And the newLabelStr:
++const oldLabelStr = "\\`<span style=\\\"display:flex;align-items:center;gap:6px;\\\">\${d.mat}<button class=\\\"tc-chip\\\" id=\\\"ctrl-material-target\\\"><span class=\\\"tc-lbl\\\" id=\\\"lbl-material-target\\\">\${d.tcItems[0]}</span></button></span>\\`";
++const newLabelStr = "\`<div style=\\\"display:flex;justify-content:space-between;align-items:center;width:100%;\\\">\${d.mat}<div class=\\\"tc-group\\\" style=\\\"padding:0;background:transparent;\\\"><button class=\\\"tc-chip\\\" id=\\\"ctrl-material-target\\\"><span class=\\\"tc-lbl\\\" id=\\\"lbl-material-target\\\">\${d.tcItems[0]}</span></button></div></div>\`";
 +
-+    if (!isAnyGlass) {
-+      this.stopGlassLoop();
-+      sp('--glass-press', '1');
-+    }
++code = code.replace("`<span style=\"display:flex;align-items:center;gap:6px;\">${d.mat}<button class=\"tc-chip\" id=\"ctrl-material-target\"><span class=\"tc-lbl\" id=\"lbl-material-target\">${d.tcItems[0]}</span></button></span>`", newLabelStr);
 +
-+    sp('--clock-color', cColor);
-+    sp('--clock-fill', cVars.fill);
-+    sp('--clock-stroke', cVars.stroke);
-+    sp('--clock-blend', cVars.blend);
-+    sp('--digit-filter', material === 1 ? 'url(#hollow-fx)' : 'none');
-+    sp('--clock-filter', cVars.filter);
-+
-+    sp('--date-fill', dVars.fill);
-+    sp('--date-stroke', dVars.stroke);
-+    sp('--date-blend', dVars.blend);
-+    sp('--date-filter', dVars.filter);
-+
-+    sp('--custom-text-fill', ctVars.fill);
-+    sp('--custom-text-stroke', ctVars.stroke);
-+    sp('--custom-text-blend', ctVars.blend);
-+    sp('--custom-text-filter', ctVars.filter);
-+
-+    const clk = this.clockEl;
-+    if (!full && clk) {
-+      clk.style.opacity = '0.99';
-+      clearTimeout(this.rp);
-+      this.rp = setTimeout(() => { if (this.clockEl) this.clockEl.style.opacity = ''; }, 50);
-+    }`;
-+
-+code = code.replace(targetStr, replaceStr);
-+
-+// glass loops
-+const glStr1 = "if (e.gamma === null || e.beta === null || this.store.getState().material !== 3) return;";
-+const glRep1 = "const st = this.store.getState(); if (e.gamma === null || e.beta === null || !(st.material === 3 || (st.showDate && st.dateMaterial === 3) || (st.showCustomText && st.customTextMaterial === 3))) return;";
-+code = code.replace(glStr1, glRep1);
-+
-+const glStr2 = "if (this.glassRaf || document.hidden || this.store.getState().material !== 3) return;";
-+const glRep2 = "const st = this.store.getState(); if (this.glassRaf || document.hidden || !(st.material === 3 || (st.showDate && st.dateMaterial === 3) || (st.showCustomText && st.customTextMaterial === 3))) return;";
-+code = code.replace(glStr2, glRep2);
-+
-+const glStr3 = "if (material !== 3 || document.hidden) return;";
-+const glRep3 = "if (!(material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3)) || document.hidden) return;";
-+code = code.replace(glStr3, glRep3);
-+
-+code = code.replace(/this\.store\.getState\(\)\.material === 3/g, "(this.store.getState().material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3))");
-+code = code.replace(/state\.material === 3/g, "(state.material === 3 || (state.showDate && state.dateMaterial === 3) || (state.showCustomText && state.customTextMaterial === 3))");
 +
 +fs.writeFileSync('js/ui-manager/ui-manager.js', code);
-+console.log('patched applyVisualVars in ui-manager.js');
-diff --git a/test_plan.js b/test_plan.js
++console.log('patched UI properly');
+diff --git a/test_ui.js b/test_ui.js
 new file mode 100644
-index 0000000..6a6957a
+index 0000000..233a73b
 --- /dev/null
-+++ b/test_plan.js
-@@ -0,0 +1 @@
-+console.log('Writing test in python / node script just for check');
++++ b/test_ui.js
+@@ -0,0 +1,22 @@
++// Wait, my previous patches for bindEvents, syncUI, applyVisualVars were undone because git checkout wiped out js/ui-manager/ui-manager.js, but then I did `rm *.js` and applied some but didn't double check if the UI actually works as expected.
++
++// Issue 1: "切換按鈕的UI未達預期" -> "在設定面板「字體材質」標題列右上角加入與色彩目標（colorTarget）相同互動與樣式風格的切換按鈕".
++// Let's look at `row` structure: `<div class="settings-row"><span class="row-label">${label}</span>${ctrl}</div>`
++// `seg` structure:
++// `<div class="settings-row"><span class="row-label">${label}</span><div class="segmented-control"...>...</div></div>`
++// The original `tcRow` for color target:
++// `row(d.tc, '<div class="tc-group">...</div>')`
++// Here, we added a button inside the `label` for material.
++// `<span style="display:flex;align-items:center;gap:6px;">${d.mat}<button class="tc-chip" id="ctrl-material-target"><span class="tc-lbl" id="lbl-material-target">${d.tcItems[0]}</span></button></span>`
++// Actually, `tc-group` is the wrapper for `tc-chip`s. A single `tc-chip` inside the `row-label` might not match the original layout since `tc-group` usually goes to the right or is part of a flex group. But in `seg`, the right side is the `segmented-control`. If we put the button in the `row-label`, it stays on the left. The user asked for "右上角" (top right of the title, or right of the title).
++// Let's put the button in the `row-label` but right-aligned, or wrap the label and button in a flex container. `row-label` is `flex: 1`, we can do `display: flex; justify-content: space-between; align-items: center`.
++// Actually, since `seg` uses `col-layout` when `options.length > 3`. For `material`, there are 4 options ('Classic', 'Hollow', 'Glow', 'Glass'), so `isCol` is true.
++// When `isCol` is true, the `settings-row` has `col-layout` class.
++// `.settings-row.col-layout { flex-direction: column; align-items: flex-start; }`
++// `.settings-row.col-layout .row-label { width: 100%; display: flex; justify-content: space-between; align-items: center; }`
++// So putting the button inside the `row-label` is correct for "top right" if we use `display: flex; justify-content: space-between`.
++
++// Let's redefine `seg` or construct `label` properly.
++// The user says "加入與色彩目標（colorTarget）相同互動與樣式風格的切換按鈕". Color target has `.tc-group` -> `.tc-chip` -> `.tc-lbl`.
++// Let's use:
++// `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;"><span>${d.mat}</span><div class="tc-group" style="padding:0; background:transparent;"><button class="tc-chip" id="ctrl-material-target"><span class="tc-lbl" id="lbl-material-target">${d.tcItems[0]}</span></button></div></div>`
