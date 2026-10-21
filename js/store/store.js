@@ -58,7 +58,8 @@ class Store {
       case 'clockAnimMode': return isInt(v, 0, 3) ? v : undefined;
       case 'clockLayout': return isInt(v, 0, 1) ? v : undefined;
       case 'textColor': case 'ampmColor': case 'dateColor': case 'customTextColor': return (typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/i.test(v)) ? v : undefined;
-      case 'material': return isInt(v, 0, 3) ? v : undefined;
+      case 'materialTarget': return (v === 'clock' || v === 'date' || v === 'custom') ? v : undefined;
+      case 'material': case 'dateMaterial': case 'customTextMaterial': return isInt(v, 0, 3) ? v : undefined;
       case 'showCustomText': case 'showY': case 'showM': case 'showD': case 'showW': return typeof v === 'boolean' ? v : undefined;
       case 'customText': return typeof v === 'string' ? v.substring(0, 30) : undefined;
       case 'anchor': return isInt(v, 0, 8) ? v : undefined;
