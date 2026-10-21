@@ -1,0 +1,148 @@
+diff --git a/css/style.css b/css/style.css
+index 1014e17..88a6246 100644
+--- a/css/style.css
++++ b/css/style.css
+@@ -39,6 +39,24 @@ body .clock-layer.exiting{transition:opacity 2s linear,transform 2s linear;opaci
+ .date-display.is-above{order:-1;margin-top:0;margin-bottom:.25em}
+ .date-display.is-hidden{max-height:0;margin-top:0;margin-bottom:0;opacity:0;overflow:hidden;pointer-events:none}
+ #custom-text{max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--custom-text-color)}
++#date {
++  color: var(--date-fill, var(--date-color));
++  -webkit-text-fill-color: var(--date-fill, var(--date-color));
++  -webkit-text-stroke: var(--date-stroke, 0);
++  mix-blend-mode: var(--date-blend, normal);
++  text-shadow: var(--clock-shadow-color);
++  filter: var(--date-filter);
++  overflow: visible;
++}
++#custom-text {
++  color: var(--custom-text-fill, var(--custom-text-color));
++  -webkit-text-fill-color: var(--custom-text-fill, var(--custom-text-color));
++  -webkit-text-stroke: var(--custom-text-stroke, 0);
++  mix-blend-mode: var(--custom-text-blend, normal);
++  text-shadow: var(--clock-shadow-color);
++  filter: var(--custom-text-filter);
++  overflow: visible;
++}
+ #date:empty,#custom-text:empty{margin:0}
+ .ui-layer{position:absolute;inset:0;z-index:10;pointer-events:none}
+ body.is-idle .ui-layer>*{opacity:0 !important;pointer-events:none !important;transition:opacity 1500ms var(--ease-in-out),transform 1500ms var(--ease-in-out),visibility 1500ms !important}
+diff --git a/js/main.js b/js/main.js
+index 3470942..b1641cd 100644
+--- a/js/main.js
++++ b/js/main.js
+@@ -23,7 +23,7 @@ function initPWA() {
+   if ('serviceWorker' in navigator) navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+ }
+ initPWA();
+-const defaultState = { lang: 'en', mode: 1, colorTarget: [0.21, 0.11, 0.47], size: 15, weight: 200, speed: 1, is24Hour: true, leadingZero: true, showSeconds: false, showDate: true, showY: false, showM: true, showD: true, showW: true, clockAnimMode: 0, clockLayout: 0, fontStyle: 0, lowPower: false, idleTimeout: 0, pixelShift: true, nightMode: false, textColor: '#ffffff', ampmColor: '#b3b3b3', dateColor: '#b3b3b3', customTextColor: '#b3b3b3', material: 0, showCustomText: false, customText: "Ambient Aurora", anchor: 4, offsetX: 0, offsetY: 0, clockOpacity: 1, datePosition: 0, isIdle: false, isHolding: false, isPanelOpen: false };
++const defaultState = { lang: 'en', mode: 1, colorTarget: [0.21, 0.11, 0.47], size: 15, weight: 200, speed: 1, is24Hour: true, leadingZero: true, showSeconds: false, showDate: true, showY: false, showM: true, showD: true, showW: true, clockAnimMode: 0, clockLayout: 0, fontStyle: 0, lowPower: false, idleTimeout: 0, pixelShift: true, nightMode: false, textColor: '#ffffff', ampmColor: '#b3b3b3', dateColor: '#b3b3b3', customTextColor: '#b3b3b3', material: 0, materialTarget: 'clock', dateMaterial: 0, customTextMaterial: 0, showCustomText: false, customText: "Ambient Aurora", anchor: 4, offsetX: 0, offsetY: 0, clockOpacity: 1, datePosition: 0, isIdle: false, isHolding: false, isPanelOpen: false };
+ const store = new Store(defaultState);
+ const glEngine = new WebGLEngine($('gl-canvas'), store);
+ const clockController = new ClockController($('clock-layer'), store,$('settings-panel'));
+diff --git a/js/store/store.js b/js/store/store.js
+index 147b043..0e2af85 100644
+--- a/js/store/store.js
++++ b/js/store/store.js
+@@ -58,7 +58,8 @@ class Store {
+       case 'clockAnimMode': return isInt(v, 0, 3) ? v : undefined;
+       case 'clockLayout': return isInt(v, 0, 1) ? v : undefined;
+       case 'textColor': case 'ampmColor': case 'dateColor': case 'customTextColor': return (typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/i.test(v)) ? v : undefined;
+-      case 'material': return isInt(v, 0, 3) ? v : undefined;
++      case 'materialTarget': return (v === 'clock' || v === 'date' || v === 'custom') ? v : undefined;
++      case 'material': case 'dateMaterial': case 'customTextMaterial': return isInt(v, 0, 3) ? v : undefined;
+       case 'showCustomText': case 'showY': case 'showM': case 'showD': case 'showW': return typeof v === 'boolean' ? v : undefined;
+       case 'customText': return typeof v === 'string' ? v.substring(0, 30) : undefined;
+       case 'anchor': return isInt(v, 0, 8) ? v : undefined;
+diff --git a/js/ui-manager/ui-manager.js b/js/ui-manager/ui-manager.js
+index a300fba..726dc15 100644
+--- a/js/ui-manager/ui-manager.js
++++ b/js/ui-manager/ui-manager.js
+@@ -124,7 +124,7 @@ class UIManager {
+     const anchorRow = `<div class="settings-row anchor-row"><span class="row-label">${d.anchor}</span><div class="anchor-grid" data-prop="anchor" role="radiogroup">${[...Array(9)].map((_, i) => `<button class="anchor-btn" data-value="${i}" role="radio"></button>`).join('')}</div></div>`;
+     const ctRow = `<div class="settings-row"><input type="text" id="ctrl-customtext" class="ct-input" maxlength="30" placeholder="${d.ctph}"></div>`;
+     const tabs = [
+-      [[seg(d.font, 'fontStyle', ['SF Pro', 'New York', 'Mono']), tcRow, seg(d.mat, 'material', d.mats)], [slider('size'), slider('weight'), slider('opacity')], [tg('ctrl-24hr', d.time), tg('ctrl-leadingzero', d.lz), tg('ctrl-seconds', d.sec), seg(d.tick, 'clockAnimMode', d.ticks)], [tg('ctrl-date', d.date), mtg(d.df, [{l:d.dY,p:'showY'}, {l:d.dM,p:'showM'}, {l:d.dD,p:'showD'}, {l:d.dW,p:'showW'}]), seg(d.layout, 'clockLayout', d.layouts), seg(d.datePos, 'datePosition', d.datePositions)], [tg('ctrl-showcustom', d.sct), ctRow], [anchorRow, slider('offset', 'ctrl-offx'), slider('offset', 'ctrl-offy')]],
++      [[seg(d.font, 'fontStyle', ['SF Pro', 'New York', 'Mono']), tcRow, seg(`<span style="display:flex;align-items:center;gap:6px;">${d.mat}<button class="tc-chip" id="ctrl-material-target"><span class="tc-lbl" id="lbl-material-target">${d.tcItems[0]}</span></button></span>`, 'material', d.mats)], [slider('size'), slider('weight'), slider('opacity')], [tg('ctrl-24hr', d.time), tg('ctrl-leadingzero', d.lz), tg('ctrl-seconds', d.sec), seg(d.tick, 'clockAnimMode', d.ticks)], [tg('ctrl-date', d.date), mtg(d.df, [{l:d.dY,p:'showY'}, {l:d.dM,p:'showM'}, {l:d.dD,p:'showD'}, {l:d.dW,p:'showW'}]), seg(d.layout, 'clockLayout', d.layouts), seg(d.datePos, 'datePosition', d.datePositions)], [tg('ctrl-showcustom', d.sct), ctRow], [anchorRow, slider('offset', 'ctrl-offx'), slider('offset', 'ctrl-offy')]],
+       [[seg(d.mode, 'mode', d.modes, 1), theme], [slider('speed')]],
+       [[langRow, seg(d.idle, 'idleTimeout', d.idles)], [tg('ctrl-pixelshift', d.burn), tg('ctrl-nightmode', d.night)]]
+     ];
+@@ -265,7 +265,7 @@ class UIManager {
+     this.gyroY = clamp((e.beta - 45) / 35, -1, 1);
+   }
+   startGlassLoop() {
+-    if (this.glassRaf || document.hidden || this.store.getState().material !== 3) return;
++    const st = this.store.getState(); if (this.glassRaf || document.hidden || !(st.material === 3 || (st.showDate && st.dateMaterial === 3) || (st.showCustomText && st.customTextMaterial === 3))) return;
+     this._lastGlassDom = 0;
+     this.updateGlassVectors(true);
+     this.lastGlassTick = performance.now();
+@@ -329,7 +329,7 @@ class UIManager {
+   tickGlass(now) {
+     this.glassRaf = null;
+     const { material, isHolding, isIdle, speed, lowPower } = this.store.getState();
+-    if (material !== 3 || document.hidden) return;
++    if (!(material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3)) || document.hidden) return;
+     const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+     const fdt = clamp(now - this.lastGlassTick, 1, 64);
+     this.lastGlassTick = now;
+@@ -433,6 +433,20 @@ class UIManager {
+     });
+     if (full) {
+       qsa(document, '.segmented-control').forEach(c => { const val = state[c.dataset.prop]; if (val !== undefined) requestAnimationFrame(() => this.updateSegmentHighlight(c, val, skipAnim)); });
++    } else if (['material', 'dateMaterial', 'customTextMaterial', 'materialTarget'].includes(changedKey) || full) {
++      if (full || changedKey === 'materialTarget' || changedKey === (state.materialTarget === 'clock' ? 'material' : state.materialTarget === 'date' ? 'dateMaterial' : 'customTextMaterial')) {
++        const c = qs(document, `.segmented-control[data-prop="material"]`);
++        const targetVal = state.materialTarget === 'clock' ? state.material : state.materialTarget === 'date' ? state.dateMaterial : state.customTextMaterial;
++        if (c && targetVal !== undefined) requestAnimationFrame(() => this.updateSegmentHighlight(c, targetVal, skipAnim));
++      }
++      if (full || changedKey === 'materialTarget') {
++        const lbl = $('lbl-material-target');
++        if (lbl) {
++          const { lang } = state;
++          const tcItems = UIManager.DICT[lang].tcItems;
++          lbl.textContent = state.materialTarget === 'clock' ? tcItems[0] : state.materialTarget === 'date' ? tcItems[2] : tcItems[3];
++        }
++      }
+     } else {
+       const c = qs(document, `.segmented-control[data-prop="${changedKey}"]`);
+       const val = state[changedKey];
+@@ -509,7 +523,7 @@ class UIManager {
+       clearTimeout(this.holdTimeout);
+       this.holdTimeout = null;
+     }
+-    if (this.store.getState().material === 3) this.startGlassLoop();
++    if ((this.store.getState().material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3))) this.startGlassLoop();
+   }
+   async requestWakeLock() {
+     if (this.wakeLock || this.wakeLockPending) return;
+@@ -539,7 +553,7 @@ class UIManager {
+       this.ptrActiveUntil = performance.now() + 900;
+     };
+     on(document, 'pointerdown', e => {
+-      if (this.store.getState().material === 3) { trackGlassPtr(e); this.tryRequestGyro(); }
++      if ((this.store.getState().material === 3 || (this.store.getState().showDate && this.store.getState().dateMaterial === 3) || (this.store.getState().showCustomText && this.store.getState().customTextMaterial === 3))) { trackGlassPtr(e); this.tryRequestGyro(); }
+       if (e.target.type === 'range') document.body.classList.add('is-dragging');
+       const tg = e.target.closest('.toggle-switch');
+       if (tg) { this.tgStart = e.clientX; this.tgTarget = tg; this.tgDragged = false; }
+@@ -558,7 +572,7 @@ class UIManager {
+       if (anchorHold && (Math.abs(e.clientX - anchorX) > 12 || Math.abs(e.clientY - anchorY) > 12)) clearAnchorHold();
+       const state = this.store.getState();
+       if (state.isHolding && this.touchStartX !== null && (Math.abs(e.clientX - this.touchStartX) > 15 || Math.abs(e.clientY - this.touchStartY) > 15)) this.exitApp(false);
+-      if (state.material === 3) trackGlassPtr(e);
++      if ((state.material === 3 || (state.showDate && state.dateMaterial === 3) || (state.showCustomText && state.customTextMaterial === 3))) trackGlassPtr(e);
+       if (this.tgTarget && this.tgStart !== null) {
+         const dx = e.clientX - this.tgStart;
+         if (Math.abs(dx) > 8) {
+@@ -600,6 +614,12 @@ class UIManager {
+       if (e.target.closest('.icon-btn')) haptic(15);
+       if (tabBtn) { const i = +tabBtn.dataset.tab; if (i !== this.activeTab) { haptic(10); this.setTab(i); } }
+       else if (mtgBtn) { haptic(10); const p = mtgBtn.dataset.prop; this.store.setState(p, !this.store.getState()[p]); }
++      else if (e.target.closest('#ctrl-material-target')) {
++        haptic(10);
++        const t = this.store.getState().materialTarget;
++        const next = t === 'clock' ? 'date' : t === 'date' ? 'custom' : 'clock';
++        this.store.setState('materialTarget', next);
++      }
+       else if (anchorBtn) { if (!holdFired && !anchorBtn.classList.contains('active')) { haptic(10); this.store.setState('anchor', +anchorBtn.dataset.value); } holdFired = false; }
+       else if (segBtn && !segBtn.classList.contains('active')) {
+         if (segBtn.closest('.segmented-control').dataset.prop === 'material' && +segBtn.dataset.value === 3) this.tryRequestGyro();

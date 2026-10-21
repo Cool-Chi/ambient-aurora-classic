@@ -39,6 +39,24 @@ body .clock-layer.exiting{transition:opacity 2s linear,transform 2s linear;opaci
 .date-display.is-above{order:-1;margin-top:0;margin-bottom:.25em}
 .date-display.is-hidden{max-height:0;margin-top:0;margin-bottom:0;opacity:0;overflow:hidden;pointer-events:none}
 #custom-text{max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--custom-text-color)}
+#date {
+  color: var(--date-fill, var(--date-color));
+  -webkit-text-fill-color: var(--date-fill, var(--date-color));
+  -webkit-text-stroke: var(--date-stroke, 0);
+  mix-blend-mode: var(--date-blend, normal);
+  text-shadow: var(--clock-shadow-color);
+  filter: var(--date-filter);
+  overflow: visible;
+}
+#custom-text {
+  color: var(--custom-text-fill, var(--custom-text-color));
+  -webkit-text-fill-color: var(--custom-text-fill, var(--custom-text-color));
+  -webkit-text-stroke: var(--custom-text-stroke, 0);
+  mix-blend-mode: var(--custom-text-blend, normal);
+  text-shadow: var(--clock-shadow-color);
+  filter: var(--custom-text-filter);
+  overflow: visible;
+}
 #date:empty,#custom-text:empty{margin:0}
 .ui-layer{position:absolute;inset:0;z-index:10;pointer-events:none}
 body.is-idle .ui-layer>*{opacity:0 !important;pointer-events:none !important;transition:opacity 1500ms var(--ease-in-out),transform 1500ms var(--ease-in-out),visibility 1500ms !important}
